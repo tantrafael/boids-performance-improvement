@@ -6,40 +6,52 @@ using Unity.Transforms;
 
 namespace Boids
 {
-    public partial struct InitializationSystem : ISystem
-    {
-        [BurstCompile]
-        public void OnCreate(ref SystemState state)
-        {
-            state.RequireForUpdate<Settings>();
-        }
+	public partial struct InitializationSystem : ISystem
+	{
+		[BurstCompile]
+		public void OnCreate(ref SystemState state)
+		{
+			state.RequireForUpdate<Settings>();
+		}
 
-        [BurstCompile]
-        public void OnUpdate(ref SystemState state)
-        {
-            state.Enabled = false;
+		[BurstCompile]
+		public void OnUpdate(ref SystemState state)
+		{
+			state.Enabled = false;
 
-            var settings = SystemAPI.GetSingleton<Settings>();
-            // TODO: Remove magic number.
-            var random = Random.CreateFromIndex(1234);
+			/*
+			// Decide world size based on boid count and density
+			int worldSize =
+				Mathf.CeilToInt(Mathf.Pow(boidCount, 1.0f / 3) * BOID_DENSITY / ROUND_WORLD_SIZE_TO_MULTIPLES_OF) *
+				ROUND_WORLD_SIZE_TO_MULTIPLES_OF;
+			*/
+			const int worldSize = 40;
 
-            Spawn(ref state, settings.UnitPrefab, settings.UnitCount, ref random);
-        }
+			var settings = SystemAPI.GetSingleton<Settings>();
+			// TODO: Remove magic number.
+			var random = Random.CreateFromIndex(1234);
 
-        private void Spawn(ref SystemState state, Entity prefab, int count, ref Random random)
-        {
-            var units = state.EntityManager.Instantiate(prefab, count, Allocator.Temp);
+			Spawn(ref state, settings.BoidPrefab, settings.BoidCount, worldSize, settings.InitialVelocity, ref random);
+		}
 
-            foreach (var unit in units)
-            {
-                // TODO: Remove magic numbers.
-                var position = new float3 { xyz = (random.NextFloat3() - 0.5f) * 100.0f };
-                var localTransform = new LocalTransform { Position = position, Scale = 1.0f };
-                state.EntityManager.SetComponentData(unit, localTransform);
+		private void Spawn(ref SystemState state, Entity prefab, int count, int worldSize, float initialVelocity, ref Random random)
+		{
+			var units = state.EntityManager.Instantiate(prefab, count, Allocator.Temp);
 
-                var movement = new Movement { Value = random.NextFloat3Direction() };
-                state.EntityManager.SetComponentData(unit, movement);
-            }
-        }
-    }
+			foreach (var unit in units)
+			{
+				// Position
+				var relativePosition = new float3 { xyz = (random.NextFloat3() - 0.5f) * 2.0f };
+				// TODO: Remove magic number 3.0f.
+				var magnitude = worldSize * 0.5f - 3.0f;
+				var absolutePosition = relativePosition * magnitude;
+				var localTransform = new LocalTransform { Position = absolutePosition, Scale = 1.0f };
+				state.EntityManager.SetComponentData(unit, localTransform);
+
+				// Velocity
+				var movement = new Movement { Velocity = random.NextFloat3Direction() * initialVelocity };
+				state.EntityManager.SetComponentData(unit, movement);
+			}
+		}
+	}
 }
