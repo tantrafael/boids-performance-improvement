@@ -1,9 +1,10 @@
+using System.Collections.Generic;
+using System.Linq;
 using Unity.Burst;
 using Unity.Burst.Intrinsics;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Mathematics;
-using Unity.Rendering;
 using Unity.Transforms;
 
 namespace Boids
@@ -83,10 +84,7 @@ namespace Boids
 			// More complex solution, but it avoids creating temporary copies of the box components
 			new CollisionJob
 			{
-				// LocalTransformTypeHandle = SystemAPI.GetComponentTypeHandle<LocalTransform>(true),
 				LocalTransformTypeHandle = SystemAPI.GetComponentTypeHandle<LocalTransform>(),
-				// DefaultColorTypeHandle = SystemAPI.GetComponentTypeHandle<DefaultColor>(true),
-				// BaseColorTypeHandle = SystemAPI.GetComponentTypeHandle<URPMaterialPropertyBaseColor>(),
 				MovementTypeHandle = SystemAPI.GetComponentTypeHandle<Movement>(),
 				EntityTypeHandle = SystemAPI.GetEntityTypeHandle(),
 				OtherChunks = boxQuery.ToArchetypeChunkArray(state.WorldUpdateAllocator)
@@ -188,7 +186,6 @@ namespace Boids
 	[BurstCompile]
 	public struct CollisionJob : IJobChunk
 	{
-		// [ReadOnly] public ComponentTypeHandle<LocalTransform> LocalTransformTypeHandle;
 		public ComponentTypeHandle<LocalTransform> LocalTransformTypeHandle;
 		public ComponentTypeHandle<Movement> MovementTypeHandle;
 		[ReadOnly] public EntityTypeHandle EntityTypeHandle;
@@ -198,16 +195,16 @@ namespace Boids
 		public void Execute(in ArchetypeChunk chunk, int unfilteredChunkIndex, bool useEnabledMask, in v128 chunkEnabledMask)
 		{
 			const float viewRange = 3.0f;
+			const float matchRate = 1.0f;
+			const float dt = 0.01f;
 
 			var transforms = chunk.GetNativeArray(ref LocalTransformTypeHandle);
 			var movements = chunk.GetNativeArray(ref MovementTypeHandle);
 			var entities = chunk.GetNativeArray(EntityTypeHandle);
-			// var allWithinRadius = new NativeArray<LocalTransform>();
 
 			for (int i = 0; i < transforms.Length; i++)
 			{
 				var transform = transforms[i];
-				// var baseColor = baseColors[i];
 				var movement = movements[i];
 				var entity = entities[i];
 
@@ -235,25 +232,71 @@ namespace Boids
 				}
 				*/
 
+				// FindNeighbours
+				var neighborVelocities = new NativeList<float3>(Allocator.Temp);
+
+				for (var j = 0; j < OtherChunks.Length; j++)
+				{
+					var otherChunk = OtherChunks[j];
+					var otherTransforms = otherChunk.GetNativeArray(ref LocalTransformTypeHandle);
+					var otherMovements = otherChunk.GetNativeArray(ref MovementTypeHandle);
+					var otherEntities = otherChunk.GetNativeArray(EntityTypeHandle);
+
+					for (var k = 0; k < otherChunk.Count; k++)
+					{
+						var otherTransform = otherTransforms[k];
+						var otherMovement = otherMovements[k];
+						var otherEntity = otherEntities[k];
+						// TODO: Use distance and viewRange squared.
+						// var distance = math.distancesq(transform.Position, otherTranslation.Position);
+						var distance = math.distance(transform.Position, otherTransform.Position);
+						var isOtherEntity = (entity != otherEntity);
+						var isWithinRadius = (distance < viewRange);
+						var isOtherEntityWithinRadius = (isOtherEntity && isWithinRadius);
+
+						if (isOtherEntityWithinRadius)
+						{
+							neighborVelocities.Add(otherMovement.Velocity);
+						}
+					}
+				}
+
 				/*
 				// AvoidInsideBoundsOfCube
 				const float halfWorldSize = 20.0f;
-				const float avoidRange = 3.0f;
+				const float viewRange = 3.0f;
 				const float dt = 0.01f;
 
 				// TODO: Remove magic number 5.0f,
 				var velocity = new float3
 				{
-					x = math.max(math.abs(transform.Position.x) + avoidRange - halfWorldSize, 0.0f) * math.sign(transform.Position.x) * 5.0f * dt,
-					y = math.max(math.abs(transform.Position.y) + avoidRange - halfWorldSize, 0.0f) * math.sign(transform.Position.y) * 5.0f * dt,
-					z = math.max(math.abs(transform.Position.z) + avoidRange - halfWorldSize, 0.0f) * math.sign(transform.Position.z) * 5.0f * dt
+					x = math.max(math.abs(transform.Position.x) + viewRange - halfWorldSize, 0.0f) * math.sign(transform.Position.x) * 5.0f * dt,
+					y = math.max(math.abs(transform.Position.y) + viewRange - halfWorldSize, 0.0f) * math.sign(transform.Position.y) * 5.0f * dt,
+					z = math.max(math.abs(transform.Position.z) + viewRange - halfWorldSize, 0.0f) * math.sign(transform.Position.z) * 5.0f * dt
 				};
 
 				movement.Velocity -= velocity;
 				movements[i] = movement;
 				*/
 
-				const float dt = 0.01f;
+				// MatchVelocity
+				if (neighborVelocities.Length > 0)
+				{
+					var neighborMeanVelocity = float3.zero;
+
+					foreach (var neighborVelocity in neighborVelocities)
+					{
+						neighborMeanVelocity += neighborVelocity;
+					}
+
+					// var neighborMeanVelocity = neighborVelocities.Aggregate(float3.zero, (current, neighbor) => current + neighbor);
+
+					neighborMeanVelocity /= neighborVelocities.Length;
+					movement.Velocity += (neighborMeanVelocity - movement.Velocity) * matchRate * dt;
+					movements[i] = movement;
+				}
+
+				// Update position.
 				transform.Position.xyz += movement.Velocity * dt;
 				transforms[i] = transform;
 			}
