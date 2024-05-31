@@ -22,7 +22,7 @@ namespace Boids
 		{
 			var boxQuery = SystemAPI.QueryBuilder().WithAll<LocalTransform>().Build();
 
-			// More complex solution, but it avoids creating temporary copies of the box components
+			// More complex solution, but it avoids creating temporary copies of the box components.
 			new CollisionJob
 			{
 				LocalTransformTypeHandle = SystemAPI.GetComponentTypeHandle<LocalTransform>(),
@@ -45,12 +45,14 @@ namespace Boids
 		public void Execute(in ArchetypeChunk chunk, int unfilteredChunkIndex, bool useEnabledMask, in v128 chunkEnabledMask)
 		{
 			// TODO: Get values from settings.
-			const float halfWorldSize = 20.0f;
+			const float halfWorldSize = 40.0f;
 			const float viewRange = 3.0f;
 			const float matchRate = 1.0f;
 			const float coherenceRate = 2.0f;
 			const float avoidanceRange = 2.0f;
 			const float avoidanceRate = 5.0f;
+			const float acceleration = 4.0f;
+			const float drag = 0.02f;
 			const float dt = 0.01f;
 
 			var transforms = chunk.GetNativeArray(ref LocalTransformTypeHandle);
@@ -65,7 +67,6 @@ namespace Boids
 
 				// Find neighbors.
 				///////////////////////////////////////////////////////////////
-				// var neighborVelocities = new NativeList<float3>(Allocator.Temp);
 				var neighbors = new NativeList<Neighbor>(Allocator.Temp);
 
 				for (var j = 0; j < OtherChunks.Length; j++)
@@ -89,7 +90,6 @@ namespace Boids
 
 						if (isOtherEntityWithinRadius)
 						{
-							// neighborVelocities.Add(otherMovement.Velocity);
 							var neighbor = new Neighbor
 							{
 								Position = otherTransform.Position,
@@ -103,15 +103,15 @@ namespace Boids
 
 				// Keep within world bounds.
 				///////////////////////////////////////////////////////////////
-				// TODO: Remove magic number 5.0f,
-				var velocity = new float3
+				var boundAvoidance = new float3
 				{
-					x = math.max(math.abs(transform.Position.x) + viewRange - halfWorldSize, 0.0f) * math.sign(transform.Position.x) * 5.0f * dt,
-					y = math.max(math.abs(transform.Position.y) + viewRange - halfWorldSize, 0.0f) * math.sign(transform.Position.y) * 5.0f * dt,
-					z = math.max(math.abs(transform.Position.z) + viewRange - halfWorldSize, 0.0f) * math.sign(transform.Position.z) * 5.0f * dt
+					x = math.max(math.abs(transform.Position.x) + viewRange - halfWorldSize, 0.0f) * math.sign(transform.Position.x),
+					y = math.max(math.abs(transform.Position.y) + viewRange - halfWorldSize, 0.0f) * math.sign(transform.Position.y),
+					z = math.max(math.abs(transform.Position.z) + viewRange - halfWorldSize, 0.0f) * math.sign(transform.Position.z)
 				};
 
-				movement.Velocity -= velocity;
+				// TODO: Remove magic number 5.0f,
+				movement.Velocity -= boundAvoidance * 5.0f * dt;
 				movements[i] = movement;
 
 				var neighborCount = neighbors.Length;
@@ -129,7 +129,6 @@ namespace Boids
 
 					// var neighborMeanVelocity = neighborVelocities.Aggregate(float3.zero, (current, neighbor) => current + neighbor);
 
-					// neighborMeanVelocity /= neighborVelocities.Length;
 					neighborMeanVelocity /= neighborCount;
 					movement.Velocity += (neighborMeanVelocity - movement.Velocity) * matchRate * dt;
 					movements[i] = movement;
@@ -155,31 +154,15 @@ namespace Boids
 				///////////////////////////////////////////////////////////////
 				if (neighborCount > 0)
 				{
-					/*
-					var myPosition = boid.Position;
-					var minDistSqr = minDist * minDist;
-					Vector3 step = Vector3.zero;
-					for (int i = 0; i < neighbours.Count; ++i)
-					{
-						var delta = myPosition - neighbours[i].Position;
-						var deltaSqr = delta.sqrMagnitude;
-						if (deltaSqr > 0 && deltaSqr < minDistSqr)
-						{
-							step += delta / Mathf.Sqrt(deltaSqr);
-						}
-					}
-					boid.Velocity += step * avoidanceRate * dt;
-					*/
-
 					var minDist = avoidanceRange;
 					var myPosition = transform.Position;
 					var minDistSqr = minDist * minDist;
 					var step = float3.zero;
 
-					for (int neigborIndex = 0; neigborIndex < neighborCount; neigborIndex++)
+					for (int neighborIndex = 0; neighborIndex < neighborCount; neighborIndex++)
 					{
-						var delta = myPosition - neighbors[neigborIndex].Position;
-						var deltaSqr = math.length(delta);
+						var delta = myPosition - neighbors[neighborIndex].Position;
+						var deltaSqr = math.lengthsq(delta);
 
 						if ((deltaSqr > 0) && (deltaSqr < minDistSqr))
 						{
@@ -190,6 +173,16 @@ namespace Boids
 					movement.Velocity += step * avoidanceRate * dt;
 					movements[i] = movement;
 				}
+
+				// Acceleration and drag.
+				///////////////////////////////////////////////////////////////
+				var velocity = movement.Velocity;
+				velocity += math.normalize(velocity) * acceleration * dt;
+				// TODO: Remove magic number 30.0f.
+				velocity *= 1.0f - 30.0f * drag * dt;
+
+				movement.Velocity = velocity;
+				movements[i] = movement;
 
 				// Update position.
 				///////////////////////////////////////////////////////////////
