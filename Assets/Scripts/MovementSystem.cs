@@ -22,25 +22,27 @@ namespace Boids
 		{
 			var boidQuery = SystemAPI.QueryBuilder().WithAll<LocalTransform>().Build();
 
-			// More complex solution, but it avoids creating temporary copies of the box components.
-			new CollisionJob
+			var movementUpdateJob = new MovementUpdateJob
 			{
 				LocalTransformTypeHandle = SystemAPI.GetComponentTypeHandle<LocalTransform>(),
 				MovementTypeHandle = SystemAPI.GetComponentTypeHandle<Movement>(),
 				EntityTypeHandle = SystemAPI.GetEntityTypeHandle(),
-				OtherChunks = boidQuery.ToArchetypeChunkArray(state.WorldUpdateAllocator)
-			}.ScheduleParallel(boidQuery, state.Dependency).Complete();
+				OtherChunks = boidQuery.ToArchetypeChunkArray(state.WorldUpdateAllocator),
+				DeltaTime = SystemAPI.Time.DeltaTime
+			};
+
+			movementUpdateJob.ScheduleParallel(boidQuery, state.Dependency).Complete();
 		}
 	}
 
 	[BurstCompile]
-	public struct CollisionJob : IJobChunk
+	public struct MovementUpdateJob : IJobChunk
 	{
 		public ComponentTypeHandle<LocalTransform> LocalTransformTypeHandle;
 		public ComponentTypeHandle<Movement> MovementTypeHandle;
 		[ReadOnly] public EntityTypeHandle EntityTypeHandle;
-
 		[ReadOnly] public NativeArray<ArchetypeChunk> OtherChunks;
+		[ReadOnly] public float DeltaTime;
 
 		public void Execute(in ArchetypeChunk chunk, int unfilteredChunkIndex, bool useEnabledMask, in v128 chunkEnabledMask)
 		{
@@ -52,9 +54,7 @@ namespace Boids
 			const float avoidanceRange = 2.0f;
 			const float avoidanceRate = 5.0f;
 			const float thrust = 4.0f;
-			// const float drag = 0.02f;
-			const float drag = 0.01f;
-			const float deltaTime = 0.01f;
+			const float drag = 0.02f;
 
 			var transforms = chunk.GetNativeArray(ref LocalTransformTypeHandle);
 			var movements = chunk.GetNativeArray(ref MovementTypeHandle);
@@ -66,55 +66,34 @@ namespace Boids
 				var movement = movements[boidIndex];
 				var entity = entities[boidIndex];
 
-				// Find neighbors.
-				///////////////////////////////////////////////////////////////
-				var neighbors = new NativeList<Neighbor>(Allocator.Temp);
+				var neighbors =
+					BoidBehavior.FindNeighbors(transform, entity, OtherChunks, LocalTransformTypeHandle,
+						MovementTypeHandle, EntityTypeHandle, viewRange);
 
-				foreach (var otherChunk in OtherChunks)
-				{
-					var otherTransforms = otherChunk.GetNativeArray(ref LocalTransformTypeHandle);
-					var otherMovements = otherChunk.GetNativeArray(ref MovementTypeHandle);
-					var otherEntities = otherChunk.GetNativeArray(EntityTypeHandle);
+				var boundRespectingAcceleration =
+					BoidBehavior.GetBoundRespectingAcceleration(transform.Position, worldSize, viewRange);
 
-					for (var otherChunkIndex = 0; otherChunkIndex < otherChunk.Count; otherChunkIndex++)
-					{
-						var otherTransform = otherTransforms[otherChunkIndex];
-						var otherMovement = otherMovements[otherChunkIndex];
-						var otherEntity = otherEntities[otherChunkIndex];
-						// TODO: Use distance and viewRange squared.
-						// var distance = math.distancesq(transform.Position, otherTranslation.Position);
-						var distance = math.distance(transform.Position, otherTransform.Position);
-						var isOtherEntity = (entity != otherEntity);
-						var isWithinRadius = (distance < viewRange);
-						var isOtherEntityWithinRadius = (isOtherEntity && isWithinRadius);
+				var velocityMatchingAcceleration =
+					BoidBehavior.GetVelocityMatvingAcceleration(movement.Velocity, neighbors, matchRate);
 
-						if (isOtherEntityWithinRadius)
-						{
-							var neighbor = new Neighbor
-							{
-								Position = otherTransform.Position,
-								Velocity = otherMovement.Velocity
-							};
+				var coherenceAcceleration =
+					BoidBehavior.GetCoherenceAcceleration(transform.Position, neighbors, coherenceRate);
 
-							neighbors.Add(neighbor);
-						}
-					}
-				}
+				var collisionAvoidanceAcceleration =
+					BoidBehavior.GetCollisionAvoidanceAcceleration(transform.Position, neighbors, avoidanceRange,
+						avoidanceRate);
 
-				var boundRespectingAcceleration = BoidBehavior.GetBoundRespectingAcceleration(transform.Position, worldSize, viewRange);
-				var velocityMatchingAcceleration = BoidBehavior.GetVelocityMatvingAcceleration(movement.Velocity, neighbors, matchRate);
-				var coherenceAcceleration = BoidBehavior.GetCoherenceAcceleration(transform.Position, neighbors, coherenceRate);
-				var collisionAvoidanceAcceleration = BoidBehavior.GetCollisionAvoidanceAcceleration(transform.Position, neighbors, avoidanceRange, avoidanceRate);
 				var thrustAcceleration = BoidBehavior.GetThrustAcceleration(movement.Velocity, thrust);
+
 				var dragAcceleration = BoidBehavior.GetDragAcceleration(movement.Velocity, drag);
 
 				var totalAcceleration = boundRespectingAcceleration + velocityMatchingAcceleration +
 				                        coherenceAcceleration + collisionAvoidanceAcceleration + thrustAcceleration +
 				                        dragAcceleration;
 
-				var deltaVelocity = totalAcceleration * deltaTime;
+				var deltaVelocity = totalAcceleration * DeltaTime;
 				var velocity = movement.Velocity + deltaVelocity;
-				var deltaPosition = velocity * deltaTime;
+				var deltaPosition = velocity * DeltaTime;
 				var position = transform.Position + deltaPosition;
 
 				transform.Position = position;
