@@ -2,6 +2,7 @@ using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Mathematics;
+using Unity.Rendering;
 using Unity.Transforms;
 
 namespace Boids
@@ -20,7 +21,7 @@ namespace Boids
 			state.Enabled = false;
 
 			/*
-			// Decide world size based on boid count and density
+			// Determine world size from boid count and density.
 			int worldSize =
 				Mathf.CeilToInt(Mathf.Pow(boidCount, 1.0f / 3) * BOID_DENSITY / ROUND_WORLD_SIZE_TO_MULTIPLES_OF) *
 				ROUND_WORLD_SIZE_TO_MULTIPLES_OF;
@@ -31,12 +32,10 @@ namespace Boids
 			// TODO: Remove magic number 1234.
 			var random = Random.CreateFromIndex(1234);
 
-			// Spawn(ref state, settings.BoidPrefab, settings.BoidCount, worldSize, settings.InitialVelocity, ref random);
 			Spawn(ref state, settings.BoidPrefab, settings.BoidCount, worldSize, settings.ViewRange,
 				settings.InitialVelocity, ref random);
 		}
 
-		// private void Spawn(ref SystemState state, Entity prefab, int count, int worldSize, float initialVelocity, ref Random random)
 		private void Spawn(ref SystemState state, Entity prefab, int boidCount, int worldSize, float viewRange,
 			float initialVelocity, ref Random random)
 		{
@@ -46,8 +45,6 @@ namespace Boids
 			{
 				// Position
 				var relativePosition = new float3 { xyz = (random.NextFloat3() - 0.5f) * 2.0f };
-				// TODO: Remove magic number 3.0f.
-				// var magnitude = worldSize * 0.5f - 3.0f;
 				var magnitude = worldSize * 0.5f - viewRange;
 				var absolutePosition = relativePosition * magnitude;
 				var localTransform = new LocalTransform { Position = absolutePosition, Scale = 1.0f };
@@ -55,7 +52,44 @@ namespace Boids
 
 				// Velocity
 				var movement = new Movement { Velocity = random.NextFloat3Direction() * initialVelocity };
+				/*
+				var movement = new Movement
+				{
+					Velocity = random.NextFloat3Direction() * initialVelocity,
+					Team = random.NextInt(0, 2)
+				};
+				*/
+
 				state.EntityManager.SetComponentData(entity, movement);
+
+				// Team
+				// TODO: Get team colors from elsewhere.
+				var teamColors = new NativeList<float4>(Allocator.Temp);
+				teamColors.Add(new float4(1.0f, 0.0f, 0.0f, 1.0f));
+				teamColors.Add(new float4(0.0f, 1.0f, 0.0f, 1.0f));
+				teamColors.Add(new float4(0.0f, 0.0f, 1.0f, 1.0f));
+
+				// TODO: Get team count from elsewhere.
+				const int teamCount = 3;
+				var teamIndex = random.NextInt(teamCount);
+
+				switch (teamIndex)
+				{
+					case 0:
+						state.EntityManager.AddComponent<TeamRed>(entity);
+						break;
+
+					case 1:
+						state.EntityManager.AddComponent<TeamGreen>(entity);
+						break;
+
+					case 2:
+						state.EntityManager.AddComponent<TeamBlue>(entity);
+						break;
+				}
+
+				var color = new URPMaterialPropertyBaseColor { Value = teamColors[teamIndex] };
+				state.EntityManager.SetComponentData(entity, color);
 			}
 		}
 	}

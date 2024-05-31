@@ -8,6 +8,46 @@ namespace Boids
 {
 	public static class BoidBehavior
 	{
+		/*
+		public static NativeList<Neighbor> FindNeighbors(LocalTransform transform, Entity entity,
+			NativeArray<ArchetypeChunk> otherChunks, ComponentTypeHandle<LocalTransform> localTransformTypeHandle,
+			ComponentTypeHandle<Movement> movementTypeHandle, EntityTypeHandle entityTypeHandle, float viewRange)
+		{
+			var neighbors = new NativeList<Neighbor>(Allocator.Temp);
+			var viewRangeSquared = math.square(viewRange);
+
+			foreach (var otherChunk in otherChunks)
+			{
+				var otherTransforms = otherChunk.GetNativeArray(ref localTransformTypeHandle);
+				var otherMovements = otherChunk.GetNativeArray(ref movementTypeHandle);
+				var otherEntities = otherChunk.GetNativeArray(entityTypeHandle);
+
+				for (var otherChunkIndex = 0; otherChunkIndex < otherChunk.Count; otherChunkIndex++)
+				{
+					var otherTransform = otherTransforms[otherChunkIndex];
+					var otherMovement = otherMovements[otherChunkIndex];
+					var otherEntity = otherEntities[otherChunkIndex];
+					var distanceSquared = math.distancesq(transform.Position, otherTransform.Position);
+					var isOtherEntity = (entity != otherEntity);
+					var isWithinRadius = (distanceSquared < viewRangeSquared);
+					var isOtherEntityWithinRadius = (isOtherEntity && isWithinRadius);
+
+					if (isOtherEntityWithinRadius)
+					{
+						var neighbor = new Neighbor
+						{
+							Position = otherTransform.Position,
+							Velocity = otherMovement.Velocity
+						};
+
+						neighbors.Add(neighbor);
+					}
+				}
+			}
+
+			return neighbors;
+		}
+		*/
 		public static NativeList<Neighbor> FindNeighbors(LocalTransform transform, Entity entity,
 			NativeArray<ArchetypeChunk> otherChunks, ComponentTypeHandle<LocalTransform> localTransformTypeHandle,
 			ComponentTypeHandle<Movement> movementTypeHandle, EntityTypeHandle entityTypeHandle, float viewRange)
