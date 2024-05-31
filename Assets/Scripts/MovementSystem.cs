@@ -7,11 +7,6 @@ using Unity.Transforms;
 
 namespace Boids
 {
-	public struct Neighbor
-	{
-		public float3 Position;
-		public float3 Velocity;
-	}
 	public partial struct MovementSystem : ISystem
 	{
 		/*
@@ -54,6 +49,8 @@ namespace Boids
 			const float viewRange = 3.0f;
 			const float matchRate = 1.0f;
 			const float coherenceRate = 2.0f;
+			const float avoidanceRange = 2.0f;
+			const float avoidanceRate = 5.0f;
 			const float dt = 0.01f;
 
 			var transforms = chunk.GetNativeArray(ref LocalTransformTypeHandle);
@@ -121,17 +118,10 @@ namespace Boids
 
 				// Match velocity.
 				///////////////////////////////////////////////////////////////
-				// if (neighborVelocities.Length > 0)
 				if (neighborCount > 0)
 				{
 					var neighborMeanVelocity = float3.zero;
 
-					/*
-					foreach (var neighborVelocity in neighborVelocities)
-					{
-						neighborMeanVelocity += neighborVelocity;
-					}
-					*/
 					foreach (var neighbor in neighbors)
 					{
 						neighborMeanVelocity += neighbor.Velocity;
@@ -147,7 +137,6 @@ namespace Boids
 
 				// Update coherence.
 				///////////////////////////////////////////////////////////////
-				// if (neighborVelocities.Length > 0)
 				if (neighborCount > 0)
 				{
 					var neighborMeanPosition = neighbors[0].Position;
@@ -164,6 +153,43 @@ namespace Boids
 
 				// Avoid others.
 				///////////////////////////////////////////////////////////////
+				if (neighborCount > 0)
+				{
+					/*
+					var myPosition = boid.Position;
+					var minDistSqr = minDist * minDist;
+					Vector3 step = Vector3.zero;
+					for (int i = 0; i < neighbours.Count; ++i)
+					{
+						var delta = myPosition - neighbours[i].Position;
+						var deltaSqr = delta.sqrMagnitude;
+						if (deltaSqr > 0 && deltaSqr < minDistSqr)
+						{
+							step += delta / Mathf.Sqrt(deltaSqr);
+						}
+					}
+					boid.Velocity += step * avoidanceRate * dt;
+					*/
+
+					var minDist = avoidanceRange;
+					var myPosition = transform.Position;
+					var minDistSqr = minDist * minDist;
+					var step = float3.zero;
+
+					for (int neigborIndex = 0; neigborIndex < neighborCount; neigborIndex++)
+					{
+						var delta = myPosition - neighbors[neigborIndex].Position;
+						var deltaSqr = math.length(delta);
+
+						if ((deltaSqr > 0) && (deltaSqr < minDistSqr))
+						{
+							step += delta / math.sqrt(deltaSqr);
+						}
+					}
+
+					movement.Velocity += step * avoidanceRate * dt;
+					movements[i] = movement;
+				}
 
 				// Update position.
 				///////////////////////////////////////////////////////////////
@@ -171,5 +197,11 @@ namespace Boids
 				transforms[i] = transform;
 			}
 		}
+	}
+
+	public struct Neighbor
+	{
+		public float3 Position;
+		public float3 Velocity;
 	}
 }
