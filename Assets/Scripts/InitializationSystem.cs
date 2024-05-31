@@ -28,29 +28,34 @@ namespace Boids
 			const int worldSize = 40;
 
 			var settings = SystemAPI.GetSingleton<Settings>();
-			// TODO: Remove magic number.
+			// TODO: Remove magic number 1234.
 			var random = Random.CreateFromIndex(1234);
 
-			Spawn(ref state, settings.BoidPrefab, settings.BoidCount, worldSize, settings.InitialVelocity, ref random);
+			// Spawn(ref state, settings.BoidPrefab, settings.BoidCount, worldSize, settings.InitialVelocity, ref random);
+			Spawn(ref state, settings.BoidPrefab, settings.BoidCount, worldSize, settings.ViewRange,
+				settings.InitialVelocity, ref random);
 		}
 
-		private void Spawn(ref SystemState state, Entity prefab, int count, int worldSize, float initialVelocity, ref Random random)
+		// private void Spawn(ref SystemState state, Entity prefab, int count, int worldSize, float initialVelocity, ref Random random)
+		private void Spawn(ref SystemState state, Entity prefab, int boidCount, int worldSize, float viewRange,
+			float initialVelocity, ref Random random)
 		{
-			var units = state.EntityManager.Instantiate(prefab, count, Allocator.Temp);
+			var entities = state.EntityManager.Instantiate(prefab, boidCount, Allocator.Temp);
 
-			foreach (var unit in units)
+			foreach (var entity in entities)
 			{
 				// Position
 				var relativePosition = new float3 { xyz = (random.NextFloat3() - 0.5f) * 2.0f };
 				// TODO: Remove magic number 3.0f.
-				var magnitude = worldSize * 0.5f - 3.0f;
+				// var magnitude = worldSize * 0.5f - 3.0f;
+				var magnitude = worldSize * 0.5f - viewRange;
 				var absolutePosition = relativePosition * magnitude;
 				var localTransform = new LocalTransform { Position = absolutePosition, Scale = 1.0f };
-				state.EntityManager.SetComponentData(unit, localTransform);
+				state.EntityManager.SetComponentData(entity, localTransform);
 
 				// Velocity
 				var movement = new Movement { Velocity = random.NextFloat3Direction() * initialVelocity };
-				state.EntityManager.SetComponentData(unit, movement);
+				state.EntityManager.SetComponentData(entity, movement);
 			}
 		}
 	}

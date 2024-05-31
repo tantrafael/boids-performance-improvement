@@ -9,13 +9,11 @@ namespace Boids
 {
 	public partial struct MovementSystem : ISystem
 	{
-		/*
 		[BurstCompile]
-		public void OnCreate(ref SystemState state) { }
-
-		[BurstCompile]
-		public void OnDestroy(ref SystemState state) { }
-		*/
+		public void OnCreate(ref SystemState state)
+		{
+			state.RequireForUpdate<Settings>();
+		}
 
 		[BurstCompile]
 		public void OnUpdate(ref SystemState state)
@@ -28,6 +26,7 @@ namespace Boids
 				MovementTypeHandle = SystemAPI.GetComponentTypeHandle<Movement>(),
 				EntityTypeHandle = SystemAPI.GetEntityTypeHandle(),
 				OtherChunks = boidQuery.ToArchetypeChunkArray(state.WorldUpdateAllocator),
+				Settings = SystemAPI.GetSingleton<Settings>(),
 				DeltaTime = SystemAPI.Time.DeltaTime
 			};
 
@@ -42,19 +41,13 @@ namespace Boids
 		public ComponentTypeHandle<Movement> MovementTypeHandle;
 		[ReadOnly] public EntityTypeHandle EntityTypeHandle;
 		[ReadOnly] public NativeArray<ArchetypeChunk> OtherChunks;
+		[ReadOnly] public Settings Settings;
 		[ReadOnly] public float DeltaTime;
 
 		public void Execute(in ArchetypeChunk chunk, int unfilteredChunkIndex, bool useEnabledMask, in v128 chunkEnabledMask)
 		{
-			// TODO: Get values from settings.
+			// TODO: Get world size from elsewhere.
 			const float worldSize = 80.0f;
-			const float viewRange = 3.0f;
-			const float matchRate = 1.0f;
-			const float coherenceRate = 2.0f;
-			const float avoidanceRange = 2.0f;
-			const float avoidanceRate = 5.0f;
-			const float thrust = 4.0f;
-			const float drag = 0.02f;
 
 			var transforms = chunk.GetNativeArray(ref LocalTransformTypeHandle);
 			var movements = chunk.GetNativeArray(ref MovementTypeHandle);
@@ -68,28 +61,28 @@ namespace Boids
 
 				var neighbors =
 					BoidBehavior.FindNeighbors(transform, entity, OtherChunks, LocalTransformTypeHandle,
-						MovementTypeHandle, EntityTypeHandle, viewRange);
+						MovementTypeHandle, EntityTypeHandle, Settings.ViewRange);
 
 				var boundRespectingAcceleration =
-					BoidBehavior.GetBoundRespectingAcceleration(transform.Position, worldSize, viewRange);
+					BoidBehavior.GetBoundRespectingAcceleration(transform.Position, worldSize, Settings.ViewRange);
 
 				var velocityMatchingAcceleration =
-					BoidBehavior.GetVelocityMatvingAcceleration(movement.Velocity, neighbors, matchRate);
+					BoidBehavior.GetVelocityMatchingAcceleration(movement.Velocity, neighbors, Settings.MatchRate);
 
-				var coherenceAcceleration =
-					BoidBehavior.GetCoherenceAcceleration(transform.Position, neighbors, coherenceRate);
+				var spatialCoherenceAcceleration =
+					BoidBehavior.GetSpatialCoherenceAcceleration(transform.Position, neighbors, Settings.CoherenceRate);
 
 				var collisionAvoidanceAcceleration =
-					BoidBehavior.GetCollisionAvoidanceAcceleration(transform.Position, neighbors, avoidanceRange,
-						avoidanceRate);
+					BoidBehavior.GetCollisionAvoidanceAcceleration(transform.Position, neighbors,
+						Settings.AvoidanceRange, Settings.AvoidanceRate);
 
-				var thrustAcceleration = BoidBehavior.GetThrustAcceleration(movement.Velocity, thrust);
+				var thrustAcceleration = BoidBehavior.GetThrustAcceleration(movement.Velocity, Settings.Thrust);
 
-				var dragAcceleration = BoidBehavior.GetDragAcceleration(movement.Velocity, drag);
+				var dragAcceleration = BoidBehavior.GetDragAcceleration(movement.Velocity, Settings.Drag);
 
 				var totalAcceleration = boundRespectingAcceleration + velocityMatchingAcceleration +
-				                        coherenceAcceleration + collisionAvoidanceAcceleration + thrustAcceleration +
-				                        dragAcceleration;
+				                        spatialCoherenceAcceleration + collisionAvoidanceAcceleration +
+				                        thrustAcceleration + dragAcceleration;
 
 				var deltaVelocity = totalAcceleration * DeltaTime;
 				var velocity = movement.Velocity + deltaVelocity;

@@ -1,3 +1,4 @@
+using System.Linq;
 using Unity.Entities;
 using Unity.Collections;
 using Unity.Mathematics;
@@ -8,27 +9,26 @@ namespace Boids
 	public static class BoidBehavior
 	{
 		public static NativeList<Neighbor> FindNeighbors(LocalTransform transform, Entity entity,
-			NativeArray<ArchetypeChunk> OtherChunks, ComponentTypeHandle<LocalTransform> LocalTransformTypeHandle,
-			ComponentTypeHandle<Movement> MovementTypeHandle, EntityTypeHandle EntityTypeHandle, float viewRange)
+			NativeArray<ArchetypeChunk> otherChunks, ComponentTypeHandle<LocalTransform> localTransformTypeHandle,
+			ComponentTypeHandle<Movement> movementTypeHandle, EntityTypeHandle entityTypeHandle, float viewRange)
 		{
 			var neighbors = new NativeList<Neighbor>(Allocator.Temp);
+			var viewRangeSquared = math.square(viewRange);
 
-			foreach (var otherChunk in OtherChunks)
+			foreach (var otherChunk in otherChunks)
 			{
-				var otherTransforms = otherChunk.GetNativeArray(ref LocalTransformTypeHandle);
-				var otherMovements = otherChunk.GetNativeArray(ref MovementTypeHandle);
-				var otherEntities = otherChunk.GetNativeArray(EntityTypeHandle);
+				var otherTransforms = otherChunk.GetNativeArray(ref localTransformTypeHandle);
+				var otherMovements = otherChunk.GetNativeArray(ref movementTypeHandle);
+				var otherEntities = otherChunk.GetNativeArray(entityTypeHandle);
 
 				for (var otherChunkIndex = 0; otherChunkIndex < otherChunk.Count; otherChunkIndex++)
 				{
 					var otherTransform = otherTransforms[otherChunkIndex];
 					var otherMovement = otherMovements[otherChunkIndex];
 					var otherEntity = otherEntities[otherChunkIndex];
-					// TODO: Use distance and viewRange squared.
-					// var distance = math.distancesq(transform.Position, otherTranslation.Position);
-					var distance = math.distance(transform.Position, otherTransform.Position);
+					var distanceSquared = math.distancesq(transform.Position, otherTransform.Position);
 					var isOtherEntity = (entity != otherEntity);
-					var isWithinRadius = (distance < viewRange);
+					var isWithinRadius = (distanceSquared < viewRangeSquared);
 					var isOtherEntityWithinRadius = (isOtherEntity && isWithinRadius);
 
 					if (isOtherEntityWithinRadius)
@@ -64,7 +64,7 @@ namespace Boids
 			return acceleration;
 		}
 
-		public static float3 GetVelocityMatvingAcceleration(float3 velocity, in NativeList<Neighbor> neighbors,
+		public static float3 GetVelocityMatchingAcceleration(float3 velocity, in NativeList<Neighbor> neighbors,
 			float matchRate)
 		{
 			if (neighbors.Length == 0)
@@ -80,8 +80,6 @@ namespace Boids
 				neighborMeanVelocity += neighbor.Velocity;
 			}
 
-			// var neighborMeanVelocity = neighborVelocities.Aggregate(float3.zero, (current, neighbor) => current + neighbor);
-
 			neighborMeanVelocity /= neighborCount;
 
 			var acceleration = (neighborMeanVelocity - velocity) * matchRate;
@@ -89,7 +87,7 @@ namespace Boids
 			return acceleration;
 		}
 
-		public static float3 GetCoherenceAcceleration(float3 position, in NativeList<Neighbor> neighbors,
+		public static float3 GetSpatialCoherenceAcceleration(float3 position, in NativeList<Neighbor> neighbors,
 			float coherenceRate)
 		{
 			if (neighbors.Length == 0)
