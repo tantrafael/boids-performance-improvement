@@ -20,7 +20,7 @@ namespace Boids
 		[BurstCompile]
 		public void OnUpdate(ref SystemState state)
 		{
-			var boxQuery = SystemAPI.QueryBuilder().WithAll<LocalTransform>().Build();
+			var boidQuery = SystemAPI.QueryBuilder().WithAll<LocalTransform>().Build();
 
 			// More complex solution, but it avoids creating temporary copies of the box components.
 			new CollisionJob
@@ -28,8 +28,8 @@ namespace Boids
 				LocalTransformTypeHandle = SystemAPI.GetComponentTypeHandle<LocalTransform>(),
 				MovementTypeHandle = SystemAPI.GetComponentTypeHandle<Movement>(),
 				EntityTypeHandle = SystemAPI.GetEntityTypeHandle(),
-				OtherChunks = boxQuery.ToArchetypeChunkArray(state.WorldUpdateAllocator)
-			}.ScheduleParallel(boxQuery, state.Dependency).Complete();
+				OtherChunks = boidQuery.ToArchetypeChunkArray(state.WorldUpdateAllocator)
+			}.ScheduleParallel(boidQuery, state.Dependency).Complete();
 		}
 	}
 
@@ -45,42 +45,42 @@ namespace Boids
 		public void Execute(in ArchetypeChunk chunk, int unfilteredChunkIndex, bool useEnabledMask, in v128 chunkEnabledMask)
 		{
 			// TODO: Get values from settings.
-			const float halfWorldSize = 40.0f;
+			const float worldSize = 80.0f;
 			const float viewRange = 3.0f;
 			const float matchRate = 1.0f;
 			const float coherenceRate = 2.0f;
 			const float avoidanceRange = 2.0f;
 			const float avoidanceRate = 5.0f;
-			const float acceleration = 4.0f;
-			const float drag = 0.02f;
-			const float dt = 0.01f;
+			const float thrust = 4.0f;
+			// const float drag = 0.02f;
+			const float drag = 0.01f;
+			const float deltaTime = 0.01f;
 
 			var transforms = chunk.GetNativeArray(ref LocalTransformTypeHandle);
 			var movements = chunk.GetNativeArray(ref MovementTypeHandle);
 			var entities = chunk.GetNativeArray(EntityTypeHandle);
 
-			for (int i = 0; i < transforms.Length; i++)
+			for (var boidIndex = 0; boidIndex < transforms.Length; boidIndex++)
 			{
-				var transform = transforms[i];
-				var movement = movements[i];
-				var entity = entities[i];
+				var transform = transforms[boidIndex];
+				var movement = movements[boidIndex];
+				var entity = entities[boidIndex];
 
 				// Find neighbors.
 				///////////////////////////////////////////////////////////////
 				var neighbors = new NativeList<Neighbor>(Allocator.Temp);
 
-				for (var j = 0; j < OtherChunks.Length; j++)
+				foreach (var otherChunk in OtherChunks)
 				{
-					var otherChunk = OtherChunks[j];
 					var otherTransforms = otherChunk.GetNativeArray(ref LocalTransformTypeHandle);
 					var otherMovements = otherChunk.GetNativeArray(ref MovementTypeHandle);
 					var otherEntities = otherChunk.GetNativeArray(EntityTypeHandle);
 
-					for (var k = 0; k < otherChunk.Count; k++)
+					for (var otherChunkIndex = 0; otherChunkIndex < otherChunk.Count; otherChunkIndex++)
 					{
-						var otherTransform = otherTransforms[k];
-						var otherMovement = otherMovements[k];
-						var otherEntity = otherEntities[k];
+						var otherTransform = otherTransforms[otherChunkIndex];
+						var otherMovement = otherMovements[otherChunkIndex];
+						var otherEntity = otherEntities[otherChunkIndex];
 						// TODO: Use distance and viewRange squared.
 						// var distance = math.distancesq(transform.Position, otherTranslation.Position);
 						var distance = math.distance(transform.Position, otherTransform.Position);
@@ -101,93 +101,27 @@ namespace Boids
 					}
 				}
 
-				// Keep within world bounds.
-				///////////////////////////////////////////////////////////////
-				var boundAvoidance = new float3
-				{
-					x = math.max(math.abs(transform.Position.x) + viewRange - halfWorldSize, 0.0f) * math.sign(transform.Position.x),
-					y = math.max(math.abs(transform.Position.y) + viewRange - halfWorldSize, 0.0f) * math.sign(transform.Position.y),
-					z = math.max(math.abs(transform.Position.z) + viewRange - halfWorldSize, 0.0f) * math.sign(transform.Position.z)
-				};
+				var boundRespectingAcceleration = BoidBehavior.GetBoundRespectingAcceleration(transform.Position, worldSize, viewRange);
+				var velocityMatchingAcceleration = BoidBehavior.GetVelocityMatvingAcceleration(movement.Velocity, neighbors, matchRate);
+				var coherenceAcceleration = BoidBehavior.GetCoherenceAcceleration(transform.Position, neighbors, coherenceRate);
+				var collisionAvoidanceAcceleration = BoidBehavior.GetCollisionAvoidanceAcceleration(transform.Position, neighbors, avoidanceRange, avoidanceRate);
+				var thrustAcceleration = BoidBehavior.GetThrustAcceleration(movement.Velocity, thrust);
+				var dragAcceleration = BoidBehavior.GetDragAcceleration(movement.Velocity, drag);
 
-				// TODO: Remove magic number 5.0f,
-				movement.Velocity -= boundAvoidance * 5.0f * dt;
-				movements[i] = movement;
+				var totalAcceleration = boundRespectingAcceleration + velocityMatchingAcceleration +
+				                        coherenceAcceleration + collisionAvoidanceAcceleration + thrustAcceleration +
+				                        dragAcceleration;
 
-				var neighborCount = neighbors.Length;
+				var deltaVelocity = totalAcceleration * deltaTime;
+				var velocity = movement.Velocity + deltaVelocity;
+				var deltaPosition = velocity * deltaTime;
+				var position = transform.Position + deltaPosition;
 
-				// Match velocity.
-				///////////////////////////////////////////////////////////////
-				if (neighborCount > 0)
-				{
-					var neighborMeanVelocity = float3.zero;
-
-					foreach (var neighbor in neighbors)
-					{
-						neighborMeanVelocity += neighbor.Velocity;
-					}
-
-					// var neighborMeanVelocity = neighborVelocities.Aggregate(float3.zero, (current, neighbor) => current + neighbor);
-
-					neighborMeanVelocity /= neighborCount;
-					movement.Velocity += (neighborMeanVelocity - movement.Velocity) * matchRate * dt;
-					movements[i] = movement;
-				}
-
-				// Update coherence.
-				///////////////////////////////////////////////////////////////
-				if (neighborCount > 0)
-				{
-					var neighborMeanPosition = neighbors[0].Position;
-
-					for (var neighborIndex = 1; neighborIndex < neighborCount; neighborIndex++)
-					{
-						neighborMeanPosition += neighbors[neighborIndex].Position;
-					}
-
-					neighborMeanPosition /= neighborCount;
-					movement.Velocity += (neighborMeanPosition - transform.Position) * coherenceRate * dt;
-					movements[i] = movement;
-				}
-
-				// Avoid others.
-				///////////////////////////////////////////////////////////////
-				if (neighborCount > 0)
-				{
-					var minDist = avoidanceRange;
-					var myPosition = transform.Position;
-					var minDistSqr = minDist * minDist;
-					var step = float3.zero;
-
-					for (int neighborIndex = 0; neighborIndex < neighborCount; neighborIndex++)
-					{
-						var delta = myPosition - neighbors[neighborIndex].Position;
-						var deltaSqr = math.lengthsq(delta);
-
-						if ((deltaSqr > 0) && (deltaSqr < minDistSqr))
-						{
-							step += delta / math.sqrt(deltaSqr);
-						}
-					}
-
-					movement.Velocity += step * avoidanceRate * dt;
-					movements[i] = movement;
-				}
-
-				// Acceleration and drag.
-				///////////////////////////////////////////////////////////////
-				var velocity = movement.Velocity;
-				velocity += math.normalize(velocity) * acceleration * dt;
-				// TODO: Remove magic number 30.0f.
-				velocity *= 1.0f - 30.0f * drag * dt;
-
+				transform.Position = position;
 				movement.Velocity = velocity;
-				movements[i] = movement;
 
-				// Update position.
-				///////////////////////////////////////////////////////////////
-				transform.Position.xyz += movement.Velocity * dt;
-				transforms[i] = transform;
+				transforms[boidIndex] = transform;
+				movements[boidIndex] = movement;
 			}
 		}
 	}

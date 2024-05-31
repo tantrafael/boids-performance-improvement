@@ -167,7 +167,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   boidDensity: 0
-  boidCount: 256
+  boidCount: 1024
   initialVelocity: 2
   viewRange: 0
   boidPrefab: {fileID: 1102670314942522181, guid: e393acd30e0b3f1448f7d6752eb64476,
