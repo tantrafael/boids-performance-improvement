@@ -1,4 +1,4 @@
-using System.Linq;
+using Unity.Burst;
 using Unity.Entities;
 using Unity.Collections;
 using Unity.Mathematics;
@@ -6,6 +6,7 @@ using Unity.Transforms;
 
 namespace Boids
 {
+	[BurstCompile]
 	public static class BoidBehavior
 	{
 		/*
@@ -87,7 +88,31 @@ namespace Boids
 			return neighbors;
 		}
 
-		public static float3 GetBoundRespectingAcceleration(float3 position, float worldSize, float avoidRange)
+		public static float3 GetTotalAcceleration(float3 position, float3 velocity, float worldSize,
+			NativeList<Neighbor> neighbors, Settings settings)
+		{
+			var boundRespectingAcceleration = GetBoundRespectingAcceleration(position, worldSize, settings.ViewRange);
+
+			var velocityMatchingAcceleration = GetVelocityMatchingAcceleration(velocity, neighbors, settings.MatchRate);
+
+			var spatialCoherenceAcceleration =
+				GetSpatialCoherenceAcceleration(position, neighbors, settings.CoherenceRate);
+
+			var collisionAvoidanceAcceleration = GetCollisionAvoidanceAcceleration(position, neighbors,
+				settings.AvoidanceRange, settings.AvoidanceRate);
+
+			var thrustAcceleration = BoidBehavior.GetThrustAcceleration(velocity, settings.Thrust);
+
+			var dragAcceleration = BoidBehavior.GetDragAcceleration(velocity, settings.Drag);
+
+			var totalAcceleration = boundRespectingAcceleration + velocityMatchingAcceleration +
+			                        spatialCoherenceAcceleration + collisionAvoidanceAcceleration +
+			                        thrustAcceleration + dragAcceleration;
+
+			return totalAcceleration;
+		}
+
+		private static float3 GetBoundRespectingAcceleration(in float3 position, in float worldSize, in float avoidRange)
 		{
 			var halfWorldSize = worldSize * 0.5f;
 
@@ -104,7 +129,7 @@ namespace Boids
 			return acceleration;
 		}
 
-		public static float3 GetVelocityMatchingAcceleration(float3 velocity, in NativeList<Neighbor> neighbors,
+		private static float3 GetVelocityMatchingAcceleration(float3 velocity, in NativeList<Neighbor> neighbors,
 			float matchRate)
 		{
 			if (neighbors.Length == 0)
@@ -127,7 +152,7 @@ namespace Boids
 			return acceleration;
 		}
 
-		public static float3 GetSpatialCoherenceAcceleration(float3 position, in NativeList<Neighbor> neighbors,
+		private static float3 GetSpatialCoherenceAcceleration(float3 position, in NativeList<Neighbor> neighbors,
 			float coherenceRate)
 		{
 			if (neighbors.Length == 0)
@@ -150,7 +175,7 @@ namespace Boids
 			return acceleration;
 		}
 
-		public static float3 GetCollisionAvoidanceAcceleration(float3 position, in NativeList<Neighbor> neighbors,
+		private static float3 GetCollisionAvoidanceAcceleration(float3 position, in NativeList<Neighbor> neighbors,
 			float avoidanceRange, float avoidanceRate)
 		{
 			if (neighbors.Length == 0)
@@ -158,42 +183,29 @@ namespace Boids
 				return float3.zero;
 			}
 
-			var minDist = avoidanceRange;
-			// var myPosition = position;
-			var minDistSqr = minDist * minDist;
-			var step = float3.zero;
+			var minimumDistanceSquared = math.square(avoidanceRange);
+			var totalAvoidanceVector = float3.zero;
 
-			// for (int neighborIndex = 0; neighborIndex < neighborCount; neighborIndex++)
 			foreach (var neighbor in neighbors)
 			{
-				// var delta = position - neighbors[neighborIndex].Position;
-				var delta = position - neighbor.Position;
-				var deltaSqr = math.lengthsq(delta);
+				var deltaPosition = position - neighbor.Position;
+				var distanceSquared = math.lengthsq(deltaPosition);
+				var isWithinAvoidanceRange = ((distanceSquared > 0) && (distanceSquared < minimumDistanceSquared));
 
-				if ((deltaSqr > 0) && (deltaSqr < minDistSqr))
+				if (isWithinAvoidanceRange)
 				{
-					step += delta / math.sqrt(deltaSqr);
+					// var avoidanceDirection = deltaPosition / math.sqrt(distanceSquared);
+					var avoidanceDirection = math.normalize(deltaPosition);
+					totalAvoidanceVector += avoidanceDirection;
 				}
 			}
 
-			// movement.Velocity += step * avoidanceRate * dt;
-			var acceleration = step * avoidanceRate;
+			var acceleration = totalAvoidanceVector * avoidanceRate;
 
 			return acceleration;
 		}
 
-		/*
-		public static float3 AccelerationAndDrag(float3 velocity, float acc, float drag)
-		{
-			var acceleration = math.normalize(velocity) * acc;
-			// TODO: Remove magic number 30.0f.
-			acceleration *= 1.0f - 30.0f * drag;
-
-			return acceleration;
-		}
-		*/
-
-		public static float3 GetThrustAcceleration(float3 velocity, float acc)
+		private static float3 GetThrustAcceleration(float3 velocity, float acc)
 		{
 			var velocityDirection = math.normalize(velocity);
 			var acceleration = velocityDirection * acc;
@@ -201,7 +213,7 @@ namespace Boids
 			return acceleration;
 		}
 
-		public static float3 GetDragAcceleration(float3 velocity, float drag)
+		private static float3 GetDragAcceleration(float3 velocity, float drag)
 		{
 			// var acceleration = -velocity * drag;
 
@@ -211,5 +223,12 @@ namespace Boids
 
 			return acceleration;
 		}
+	}
+
+	[BurstCompile]
+	public struct Neighbor
+	{
+		public float3 Position;
+		public float3 Velocity;
 	}
 }

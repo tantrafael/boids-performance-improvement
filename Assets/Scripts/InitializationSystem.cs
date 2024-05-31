@@ -26,7 +26,8 @@ namespace Boids
 				Mathf.CeilToInt(Mathf.Pow(boidCount, 1.0f / 3) * BOID_DENSITY / ROUND_WORLD_SIZE_TO_MULTIPLES_OF) *
 				ROUND_WORLD_SIZE_TO_MULTIPLES_OF;
 			*/
-			const int worldSize = 40;
+			// TODO: Calculate world size.
+			const float worldSize = 40;
 
 			var settings = SystemAPI.GetSingleton<Settings>();
 			// TODO: Remove magic number 1234.
@@ -36,7 +37,7 @@ namespace Boids
 				settings.InitialVelocity, ref random);
 		}
 
-		private void Spawn(ref SystemState state, Entity prefab, int boidCount, int worldSize, float viewRange,
+		private void Spawn(ref SystemState state, Entity prefab, int boidCount, float worldSize, float viewRange,
 			float initialVelocity, ref Random random)
 		{
 			var entities = state.EntityManager.Instantiate(prefab, boidCount, Allocator.Temp);

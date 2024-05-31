@@ -2,7 +2,6 @@ using Unity.Burst;
 using Unity.Burst.Intrinsics;
 using Unity.Collections;
 using Unity.Entities;
-using Unity.Mathematics;
 using Unity.Transforms;
 
 namespace Boids
@@ -18,7 +17,9 @@ namespace Boids
 		[BurstCompile]
 		public void OnUpdate(ref SystemState state)
 		{
-			var boidQuery = SystemAPI.QueryBuilder().WithAll<LocalTransform>().Build();
+			// var boidQuery = SystemAPI.QueryBuilder().WithAll<LocalTransform>().Build();
+			var boidQuery = SystemAPI.QueryBuilder().WithAll<Movement>().Build();
+			// var boidQuery = SystemAPI.QueryBuilder().WithAll<TeamRed>().Build();
 
 			var movementUpdateJob = new MovementUpdateJob
 			{
@@ -47,7 +48,7 @@ namespace Boids
 		public void Execute(in ArchetypeChunk chunk, int unfilteredChunkIndex, bool useEnabledMask, in v128 chunkEnabledMask)
 		{
 			// TODO: Get world size from elsewhere.
-			const float worldSize = 40.0f;
+			const float worldSize = 40;
 
 			var transforms = chunk.GetNativeArray(ref LocalTransformTypeHandle);
 			var movements = chunk.GetNativeArray(ref MovementTypeHandle);
@@ -63,26 +64,8 @@ namespace Boids
 					BoidBehavior.FindNeighbors(transform, entity, OtherChunks, LocalTransformTypeHandle,
 						MovementTypeHandle, EntityTypeHandle, Settings.ViewRange);
 
-				var boundRespectingAcceleration =
-					BoidBehavior.GetBoundRespectingAcceleration(transform.Position, worldSize, Settings.ViewRange);
-
-				var velocityMatchingAcceleration =
-					BoidBehavior.GetVelocityMatchingAcceleration(movement.Velocity, neighbors, Settings.MatchRate);
-
-				var spatialCoherenceAcceleration =
-					BoidBehavior.GetSpatialCoherenceAcceleration(transform.Position, neighbors, Settings.CoherenceRate);
-
-				var collisionAvoidanceAcceleration =
-					BoidBehavior.GetCollisionAvoidanceAcceleration(transform.Position, neighbors,
-						Settings.AvoidanceRange, Settings.AvoidanceRate);
-
-				var thrustAcceleration = BoidBehavior.GetThrustAcceleration(movement.Velocity, Settings.Thrust);
-
-				var dragAcceleration = BoidBehavior.GetDragAcceleration(movement.Velocity, Settings.Drag);
-
-				var totalAcceleration = boundRespectingAcceleration + velocityMatchingAcceleration +
-				                        spatialCoherenceAcceleration + collisionAvoidanceAcceleration +
-				                        thrustAcceleration + dragAcceleration;
+				var totalAcceleration = BoidBehavior.GetTotalAcceleration(transform.Position, movement.Velocity,
+					worldSize, neighbors, Settings);
 
 				var deltaVelocity = totalAcceleration * DeltaTime;
 				var velocity = movement.Velocity + deltaVelocity;
@@ -96,11 +79,5 @@ namespace Boids
 				movements[boidIndex] = movement;
 			}
 		}
-	}
-
-	public struct Neighbor
-	{
-		public float3 Position;
-		public float3 Velocity;
 	}
 }
