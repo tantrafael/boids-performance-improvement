@@ -49,11 +49,13 @@ namespace Boids
 			return neighbors;
 		}
 		*/
-		public static NativeList<Neighbor> FindNeighbors(LocalTransform transform, Entity entity,
+		public static void FindNeighbors(LocalTransform transform, Movement movement, Entity entity,
 			NativeArray<ArchetypeChunk> otherChunks, ComponentTypeHandle<LocalTransform> localTransformTypeHandle,
-			ComponentTypeHandle<Movement> movementTypeHandle, EntityTypeHandle entityTypeHandle, float viewRange)
+			ComponentTypeHandle<Movement> movementTypeHandle, EntityTypeHandle entityTypeHandle, float viewRange,
+			out NativeList<Neighbor> neighbors, out NativeList<Neighbor> teamNeighbors)
 		{
-			var neighbors = new NativeList<Neighbor>(Allocator.Temp);
+			neighbors = new NativeList<Neighbor>(Allocator.Temp);
+			teamNeighbors = new NativeList<Neighbor>(Allocator.Temp);
 			var viewRangeSquared = math.square(viewRange);
 
 			foreach (var otherChunk in otherChunks)
@@ -81,13 +83,19 @@ namespace Boids
 						};
 
 						neighbors.Add(neighbor);
+
+						var isSameTeam = otherMovement.Team == movement.Team;
+
+						if (isSameTeam)
+						{
+							teamNeighbors.Add(neighbor);
+						}
 					}
 				}
 			}
-
-			return neighbors;
 		}
 
+		/*
 		public static float3 GetTotalAcceleration(float3 position, float3 velocity, float worldSize,
 			NativeList<Neighbor> neighbors, Settings settings)
 		{
@@ -101,9 +109,34 @@ namespace Boids
 			var collisionAvoidanceAcceleration = GetCollisionAvoidanceAcceleration(position, neighbors,
 				settings.AvoidanceRange, settings.AvoidanceRate);
 
-			var thrustAcceleration = BoidBehavior.GetThrustAcceleration(velocity, settings.Thrust);
+			var thrustAcceleration = GetThrustAcceleration(velocity, settings.Thrust);
 
-			var dragAcceleration = BoidBehavior.GetDragAcceleration(velocity, settings.Drag);
+			var dragAcceleration = GetDragAcceleration(velocity, settings.Drag);
+
+			var totalAcceleration = boundRespectingAcceleration + velocityMatchingAcceleration +
+			                        spatialCoherenceAcceleration + collisionAvoidanceAcceleration +
+			                        thrustAcceleration + dragAcceleration;
+
+			return totalAcceleration;
+		}
+		*/
+		public static float3 GetTotalAcceleration(float3 position, float3 velocity, float worldSize,
+			NativeList<Neighbor> neighbors, NativeList<Neighbor> teamNeighbors, Settings settings)
+		{
+			var boundRespectingAcceleration = GetBoundRespectingAcceleration(position, worldSize, settings.ViewRange);
+
+			var velocityMatchingAcceleration =
+				GetVelocityMatchingAcceleration(velocity, teamNeighbors, settings.MatchRate);
+
+			var spatialCoherenceAcceleration =
+				GetSpatialCoherenceAcceleration(position, teamNeighbors, settings.CoherenceRate);
+
+			var collisionAvoidanceAcceleration = GetCollisionAvoidanceAcceleration(position, neighbors,
+				settings.AvoidanceRange, settings.AvoidanceRate);
+
+			var thrustAcceleration = GetThrustAcceleration(velocity, settings.Thrust);
+
+			var dragAcceleration = GetDragAcceleration(velocity, settings.Drag);
 
 			var totalAcceleration = boundRespectingAcceleration + velocityMatchingAcceleration +
 			                        spatialCoherenceAcceleration + collisionAvoidanceAcceleration +

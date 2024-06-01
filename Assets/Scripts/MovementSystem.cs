@@ -60,12 +60,21 @@ namespace Boids
 				var movement = movements[boidIndex];
 				var entity = entities[boidIndex];
 
+				/*
 				var neighbors =
 					BoidBehavior.FindNeighbors(transform, entity, OtherChunks, LocalTransformTypeHandle,
 						MovementTypeHandle, EntityTypeHandle, Settings.ViewRange);
+				*/
+				BoidBehavior.FindNeighbors(transform, movement, entity, OtherChunks, LocalTransformTypeHandle,
+					MovementTypeHandle, EntityTypeHandle, Settings.ViewRange, out NativeList<Neighbor> neighbors,
+					out NativeList<Neighbor> teamNeighbors);
 
+				/*
 				var totalAcceleration = BoidBehavior.GetTotalAcceleration(transform.Position, movement.Velocity,
 					worldSize, neighbors, Settings);
+				*/
+				var totalAcceleration = BoidBehavior.GetTotalAcceleration(transform.Position, movement.Velocity,
+					worldSize, neighbors, teamNeighbors, Settings);
 
 				var deltaVelocity = totalAcceleration * DeltaTime;
 				var velocity = movement.Velocity + deltaVelocity;

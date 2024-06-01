@@ -34,11 +34,11 @@ namespace Boids
 			var random = Random.CreateFromIndex(1234);
 
 			Spawn(ref state, settings.BoidPrefab, settings.BoidCount, worldSize, settings.ViewRange,
-				settings.InitialVelocity, ref random);
+				settings.InitialSpeed, ref random);
 		}
 
 		private void Spawn(ref SystemState state, Entity prefab, int boidCount, float worldSize, float viewRange,
-			float initialVelocity, ref Random random)
+			float initialSpeed, ref Random random)
 		{
 			var entities = state.EntityManager.Instantiate(prefab, boidCount, Allocator.Temp);
 
@@ -52,28 +52,17 @@ namespace Boids
 				state.EntityManager.SetComponentData(entity, localTransform);
 
 				// Velocity
-				var movement = new Movement { Velocity = random.NextFloat3Direction() * initialVelocity };
-				/*
-				var movement = new Movement
-				{
-					Velocity = random.NextFloat3Direction() * initialVelocity,
-					Team = random.NextInt(0, 2)
-				};
-				*/
-
-				state.EntityManager.SetComponentData(entity, movement);
+				var initialVelocity = random.NextFloat3Direction() * initialSpeed;
 
 				// Team
-				// TODO: Get team colors from elsewhere.
-				var teamColors = new NativeList<float4>(Allocator.Temp);
-				teamColors.Add(new float4(1.0f, 0.0f, 0.0f, 1.0f));
-				teamColors.Add(new float4(0.0f, 1.0f, 0.0f, 1.0f));
-				teamColors.Add(new float4(0.0f, 0.0f, 1.0f, 1.0f));
-
 				// TODO: Get team count from elsewhere.
 				const int teamCount = 3;
 				var teamIndex = random.NextInt(teamCount);
 
+				// TODO: Assign team using component tag rather than storing it with each entity,
+				// for efficient team selection.
+
+				/*
 				switch (teamIndex)
 				{
 					case 0:
@@ -88,6 +77,16 @@ namespace Boids
 						state.EntityManager.AddComponent<TeamBlue>(entity);
 						break;
 				}
+				*/
+
+				var movement = new Movement { Velocity = initialVelocity, Team = teamIndex };
+				state.EntityManager.SetComponentData(entity, movement);
+
+				// TODO: Get team colors from elsewhere.
+				var teamColors = new NativeList<float4>(Allocator.Temp);
+				teamColors.Add(new float4(1.0f, 0.0f, 0.0f, 1.0f));
+				teamColors.Add(new float4(0.0f, 1.0f, 0.0f, 1.0f));
+				teamColors.Add(new float4(0.0f, 0.0f, 1.0f, 1.0f));
 
 				var color = new URPMaterialPropertyBaseColor { Value = teamColors[teamIndex] };
 				state.EntityManager.SetComponentData(entity, color);

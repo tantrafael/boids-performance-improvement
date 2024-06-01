@@ -26,21 +26,23 @@ namespace Boids
 		}
 	}
 
+	/*
 	public struct Movement : IComponentData
 	{
 		public float3 Velocity;
 	}
-	/*
+	*/
 	public struct Movement : IComponentData
 	{
 		public float3 Velocity;
 		public int Team;
 	}
-	*/
 
+	/*
 	public struct TeamRed : IComponentData {}
 
 	public struct TeamGreen : IComponentData {}
 
 	public struct TeamBlue : IComponentData {}
+	*/
 }

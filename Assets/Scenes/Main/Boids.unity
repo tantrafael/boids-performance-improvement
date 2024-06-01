@@ -168,8 +168,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   roundWorldSizeToMultiplesOf: 5
   boidDensity: 4
-  boidCount: 1024
-  initialVelocity: 2
+  boidCount: 256
+  initialSpeed: 2
   viewRange: 3
   matchRate: 1
   coherenceRate: 2

@@ -8,7 +8,7 @@ namespace Boids
 		public int roundWorldSizeToMultiplesOf;
 		public int boidDensity;
 		public int boidCount;
-		public float initialVelocity;
+		public float initialSpeed;
 		public float viewRange;
 		public float matchRate;
 		public float coherenceRate;
@@ -29,7 +29,7 @@ namespace Boids
 					RoundWorldSizeToMultiplesOf = authoring.roundWorldSizeToMultiplesOf,
 					BoidDensity = authoring.boidDensity,
 					BoidCount = authoring.boidCount,
-					InitialVelocity = authoring.initialVelocity,
+					InitialSpeed = authoring.initialSpeed,
 					ViewRange = authoring.viewRange,
 					MatchRate = authoring.matchRate,
 					CoherenceRate = authoring.coherenceRate,
@@ -50,7 +50,7 @@ namespace Boids
 		public int RoundWorldSizeToMultiplesOf;
 		public int BoidDensity;
 		public int BoidCount;
-		public float InitialVelocity;
+		public float InitialSpeed;
 		public float ViewRange;
 		public float MatchRate;
 		public float CoherenceRate;
