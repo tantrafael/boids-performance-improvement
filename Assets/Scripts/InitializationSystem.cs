@@ -88,6 +88,13 @@ namespace Boids
 				teamColors.Add(new float4(0.0f, 1.0f, 0.0f, 1.0f));
 				teamColors.Add(new float4(0.0f, 0.0f, 1.0f, 1.0f));
 
+				/*
+				var teamBoisAgentSizes = new NativeList<float>(Allocator.Temp);
+				teamBoisAgentSizes.Add(0.6f);
+				teamBoisAgentSizes.Add(1.0f);
+				teamBoisAgentSizes.Add(0.4f);
+				*/
+
 				var color = new URPMaterialPropertyBaseColor { Value = teamColors[teamIndex] };
 				state.EntityManager.SetComponentData(entity, color);
 			}

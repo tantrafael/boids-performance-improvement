@@ -48,19 +48,49 @@ namespace Boids
 				settings.AvoidanceRange, settings.AvoidanceRate);
 
 			// var thrustAcceleration = GetThrustAcceleration(velocity, settings.Thrust);
+			/*
 			var thrustTable = new NativeList<float>(Allocator.Temp);
 			thrustTable.Add(1.0f);
 			thrustTable.Add(5.0f);
 			thrustTable.Add(10.0f);
+			*/
+
+			var thrustTable = new NativeList<float>(Allocator.Temp);
+			thrustTable.Add(settings.ThrustTeamRed);
+			thrustTable.Add(settings.ThrustTeamGreen);
+			thrustTable.Add(settings.ThrustTeamBlue);
 
 			var thrust = thrustTable[teamIndex];
 			var thrustAcceleration = GetThrustAcceleration(velocity, thrust);
 
+			/*
+			float3 thrust;
+
+			switch (teamIndex)
+			{
+				case 0:
+					thrust = settings.ThrustTeamRed;
+					break;
+				case 1:
+					thrust = settings.ThrustTeamGreen;
+					break;
+				case 2:
+					thrust = settings.ThrustTeamBlue;
+					break;
+			}
+			*/
+
 			// var dragAcceleration = GetDragAcceleration(velocity, settings.Drag);
+			/*
 			var dragTable = new NativeList<float>(Allocator.Temp);
 			dragTable.Add(0.01f);
 			dragTable.Add(0.05f);
 			dragTable.Add(0.1f);
+			*/
+			var dragTable = new NativeList<float>(Allocator.Temp);
+			dragTable.Add(settings.DragTeamRed);
+			dragTable.Add(settings.DragTeamGreen);
+			dragTable.Add(settings.DragTeamBlue);
 
 			var drag = dragTable[teamIndex];
 			var dragAcceleration = GetDragAcceleration(velocity, drag);

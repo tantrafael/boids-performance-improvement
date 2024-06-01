@@ -20,6 +20,12 @@ namespace Boids
 		public float drag;
 		// public float[] thrustTable;
 		// public NativeArray<float> thrustTable;
+		public float thrustTeamRed;
+		public float thrustTeamGreen;
+		public float thrustTeamBlue;
+		public float dragTeamRed;
+		public float dragTeamGreen;
+		public float dragTeamBlue;
 		public GameObject boidPrefab;
 
 		private class Baker : Baker<SettingsAuthoring>
@@ -52,6 +58,12 @@ namespace Boids
 					Drag = authoring.drag,
 					// ThrustTable = authoring.thrustTable,
 					// ThrustTable = bar,
+					ThrustTeamRed = authoring.thrustTeamRed,
+					ThrustTeamGreen = authoring.thrustTeamGreen,
+					ThrustTeamBlue = authoring.thrustTeamBlue,
+					DragTeamRed = authoring.dragTeamRed,
+					DragTeamGreen = authoring.dragTeamGreen,
+					DragTeamBlue = authoring.dragTeamBlue,
 					BoidPrefab = GetEntity(authoring.boidPrefab, TransformUsageFlags.Dynamic)
 				};
 
@@ -75,11 +87,19 @@ namespace Boids
 		public float Drag;
 		// public float[] ThrustTable;
 		// public NativeArray<float> ThrustTable;
+		public float ThrustTeamRed;
+		public float ThrustTeamGreen;
+		public float ThrustTeamBlue;
+		public float DragTeamRed;
+		public float DragTeamGreen;
+		public float DragTeamBlue;
 		public Entity BoidPrefab;
 	}
 
+	/*
 	public struct Foo
 	{
 		public NativeArray<float> Bar;
 	}
+	*/
 }

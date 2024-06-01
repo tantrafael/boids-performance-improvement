@@ -15,6 +15,26 @@ namespace Boids
 			state.RequireForUpdate<Settings>();
 		}
 
+		/*
+		[BurstCompile]
+		public void OnUpdate(ref SystemState state)
+		{
+			var boidQuery = SystemAPI.QueryBuilder().WithAll<Movement>().Build();
+			// var boidQuery = SystemAPI.QueryBuilder().WithAll<TeamRed>().Build();
+
+			var movementUpdateJob = new MovementUpdateJob
+			{
+				LocalTransformTypeHandle = SystemAPI.GetComponentTypeHandle<LocalTransform>(),
+				MovementTypeHandle = SystemAPI.GetComponentTypeHandle<Movement>(),
+				EntityTypeHandle = SystemAPI.GetEntityTypeHandle(),
+				OtherChunks = boidQuery.ToArchetypeChunkArray(state.WorldUpdateAllocator),
+				Settings = SystemAPI.GetSingleton<Settings>(),
+				DeltaTime = SystemAPI.Time.DeltaTime
+			};
+
+			movementUpdateJob.ScheduleParallel(boidQuery, state.Dependency).Complete();
+		}
+		*/
 		[BurstCompile]
 		public void OnUpdate(ref SystemState state)
 		{
