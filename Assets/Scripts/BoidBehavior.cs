@@ -1,8 +1,6 @@
 using Unity.Burst;
-using Unity.Entities;
 using Unity.Collections;
 using Unity.Mathematics;
-using Unity.Transforms;
 
 namespace Boids
 {
@@ -10,116 +8,6 @@ namespace Boids
 	public static class BoidBehavior
 	{
 		/*
-		public static NativeList<Neighbor> FindNeighbors(LocalTransform transform, Entity entity,
-			NativeArray<ArchetypeChunk> otherChunks, ComponentTypeHandle<LocalTransform> localTransformTypeHandle,
-			ComponentTypeHandle<Movement> movementTypeHandle, EntityTypeHandle entityTypeHandle, float viewRange)
-		{
-			var neighbors = new NativeList<Neighbor>(Allocator.Temp);
-			var viewRangeSquared = math.square(viewRange);
-
-			foreach (var otherChunk in otherChunks)
-			{
-				var otherTransforms = otherChunk.GetNativeArray(ref localTransformTypeHandle);
-				var otherMovements = otherChunk.GetNativeArray(ref movementTypeHandle);
-				var otherEntities = otherChunk.GetNativeArray(entityTypeHandle);
-
-				for (var otherChunkIndex = 0; otherChunkIndex < otherChunk.Count; otherChunkIndex++)
-				{
-					var otherTransform = otherTransforms[otherChunkIndex];
-					var otherMovement = otherMovements[otherChunkIndex];
-					var otherEntity = otherEntities[otherChunkIndex];
-					var distanceSquared = math.distancesq(transform.Position, otherTransform.Position);
-					var isOtherEntity = (entity != otherEntity);
-					var isWithinRadius = (distanceSquared < viewRangeSquared);
-					var isOtherEntityWithinRadius = (isOtherEntity && isWithinRadius);
-
-					if (isOtherEntityWithinRadius)
-					{
-						var neighbor = new Neighbor
-						{
-							Position = otherTransform.Position,
-							Velocity = otherMovement.Velocity
-						};
-
-						neighbors.Add(neighbor);
-					}
-				}
-			}
-
-			return neighbors;
-		}
-		*/
-		public static void FindNeighbors(LocalTransform transform, Movement movement, Entity entity,
-			NativeArray<ArchetypeChunk> otherChunks, ComponentTypeHandle<LocalTransform> localTransformTypeHandle,
-			ComponentTypeHandle<Movement> movementTypeHandle, EntityTypeHandle entityTypeHandle, float viewRange,
-			out NativeList<Neighbor> neighbors, out NativeList<Neighbor> teamNeighbors)
-		{
-			neighbors = new NativeList<Neighbor>(Allocator.Temp);
-			teamNeighbors = new NativeList<Neighbor>(Allocator.Temp);
-			var viewRangeSquared = math.square(viewRange);
-
-			foreach (var otherChunk in otherChunks)
-			{
-				var otherTransforms = otherChunk.GetNativeArray(ref localTransformTypeHandle);
-				var otherMovements = otherChunk.GetNativeArray(ref movementTypeHandle);
-				var otherEntities = otherChunk.GetNativeArray(entityTypeHandle);
-
-				for (var otherChunkIndex = 0; otherChunkIndex < otherChunk.Count; otherChunkIndex++)
-				{
-					var otherTransform = otherTransforms[otherChunkIndex];
-					var otherMovement = otherMovements[otherChunkIndex];
-					var otherEntity = otherEntities[otherChunkIndex];
-					var distanceSquared = math.distancesq(transform.Position, otherTransform.Position);
-					var isOtherEntity = (entity != otherEntity);
-					var isWithinRadius = (distanceSquared < viewRangeSquared);
-					var isOtherEntityWithinRadius = (isOtherEntity && isWithinRadius);
-
-					if (isOtherEntityWithinRadius)
-					{
-						var neighbor = new Neighbor
-						{
-							Position = otherTransform.Position,
-							Velocity = otherMovement.Velocity
-						};
-
-						neighbors.Add(neighbor);
-
-						var isSameTeam = otherMovement.Team == movement.Team;
-
-						if (isSameTeam)
-						{
-							teamNeighbors.Add(neighbor);
-						}
-					}
-				}
-			}
-		}
-
-		/*
-		public static float3 GetTotalAcceleration(float3 position, float3 velocity, float worldSize,
-			NativeList<Neighbor> neighbors, Settings settings)
-		{
-			var boundRespectingAcceleration = GetBoundRespectingAcceleration(position, worldSize, settings.ViewRange);
-
-			var velocityMatchingAcceleration = GetVelocityMatchingAcceleration(velocity, neighbors, settings.MatchRate);
-
-			var spatialCoherenceAcceleration =
-				GetSpatialCoherenceAcceleration(position, neighbors, settings.CoherenceRate);
-
-			var collisionAvoidanceAcceleration = GetCollisionAvoidanceAcceleration(position, neighbors,
-				settings.AvoidanceRange, settings.AvoidanceRate);
-
-			var thrustAcceleration = GetThrustAcceleration(velocity, settings.Thrust);
-
-			var dragAcceleration = GetDragAcceleration(velocity, settings.Drag);
-
-			var totalAcceleration = boundRespectingAcceleration + velocityMatchingAcceleration +
-			                        spatialCoherenceAcceleration + collisionAvoidanceAcceleration +
-			                        thrustAcceleration + dragAcceleration;
-
-			return totalAcceleration;
-		}
-		*/
 		public static float3 GetTotalAcceleration(float3 position, float3 velocity, float worldSize,
 			NativeList<Neighbor> neighbors, NativeList<Neighbor> teamNeighbors, Settings settings)
 		{
@@ -137,6 +25,45 @@ namespace Boids
 			var thrustAcceleration = GetThrustAcceleration(velocity, settings.Thrust);
 
 			var dragAcceleration = GetDragAcceleration(velocity, settings.Drag);
+
+			var totalAcceleration = boundRespectingAcceleration + velocityMatchingAcceleration +
+			                        spatialCoherenceAcceleration + collisionAvoidanceAcceleration +
+			                        thrustAcceleration + dragAcceleration;
+
+			return totalAcceleration;
+		}
+		*/
+		public static float3 GetTotalAcceleration(float3 position, float3 velocity, int teamIndex, float worldSize,
+			NativeList<Neighbor> neighbors, NativeList<Neighbor> teamNeighbors, Settings settings)
+		{
+			var boundRespectingAcceleration = GetBoundRespectingAcceleration(position, worldSize, settings.ViewRange);
+
+			var velocityMatchingAcceleration =
+				GetVelocityMatchingAcceleration(velocity, teamNeighbors, settings.MatchRate);
+
+			var spatialCoherenceAcceleration =
+				GetSpatialCoherenceAcceleration(position, teamNeighbors, settings.CoherenceRate);
+
+			var collisionAvoidanceAcceleration = GetCollisionAvoidanceAcceleration(position, neighbors,
+				settings.AvoidanceRange, settings.AvoidanceRate);
+
+			// var thrustAcceleration = GetThrustAcceleration(velocity, settings.Thrust);
+			var thrustTable = new NativeList<float>(Allocator.Temp);
+			thrustTable.Add(1.0f);
+			thrustTable.Add(5.0f);
+			thrustTable.Add(10.0f);
+
+			var thrust = thrustTable[teamIndex];
+			var thrustAcceleration = GetThrustAcceleration(velocity, thrust);
+
+			// var dragAcceleration = GetDragAcceleration(velocity, settings.Drag);
+			var dragTable = new NativeList<float>(Allocator.Temp);
+			dragTable.Add(0.01f);
+			dragTable.Add(0.05f);
+			dragTable.Add(0.1f);
+
+			var drag = dragTable[teamIndex];
+			var dragAcceleration = GetDragAcceleration(velocity, drag);
 
 			var totalAcceleration = boundRespectingAcceleration + velocityMatchingAcceleration +
 			                        spatialCoherenceAcceleration + collisionAvoidanceAcceleration +

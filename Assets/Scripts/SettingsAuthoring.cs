@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using Unity.Collections;
 using Unity.Entities;
 using UnityEngine;
 
@@ -16,6 +18,8 @@ namespace Boids
 		public float avoidanceRate;
 		public float thrust;
 		public float drag;
+		// public float[] thrustTable;
+		// public NativeArray<float> thrustTable;
 		public GameObject boidPrefab;
 
 		private class Baker : Baker<SettingsAuthoring>
@@ -23,6 +27,15 @@ namespace Boids
 			public override void Bake(SettingsAuthoring authoring)
 			{
 				var entity = GetEntity(TransformUsageFlags.None);
+
+				/*
+				var foo = new float[3];
+				foo[0] = 1.0f;
+				foo[1] = 10.0f;
+
+				// var bar = new NativeArray<float>(foo, Allocator.Temp);
+				var bar = new NativeArray<float>(foo, Allocator.Persistent);
+				*/
 
 				var settings = new Settings
 				{
@@ -37,6 +50,8 @@ namespace Boids
 					AvoidanceRate = authoring.avoidanceRate,
 					Thrust = authoring.thrust,
 					Drag = authoring.drag,
+					// ThrustTable = authoring.thrustTable,
+					// ThrustTable = bar,
 					BoidPrefab = GetEntity(authoring.boidPrefab, TransformUsageFlags.Dynamic)
 				};
 
@@ -58,6 +73,13 @@ namespace Boids
 		public float AvoidanceRate;
 		public float Thrust;
 		public float Drag;
+		// public float[] ThrustTable;
+		// public NativeArray<float> ThrustTable;
 		public Entity BoidPrefab;
+	}
+
+	public struct Foo
+	{
+		public NativeArray<float> Bar;
 	}
 }

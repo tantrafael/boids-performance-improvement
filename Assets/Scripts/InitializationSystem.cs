@@ -59,8 +59,8 @@ namespace Boids
 				const int teamCount = 3;
 				var teamIndex = random.NextInt(teamCount);
 
-				// TODO: Assign team using component tag rather than storing it with each entity,
-				// for efficient team selection.
+				// TODO: Consider assigning team using component tags rather than storing it with each entity.
+				// Components tags are free and provide efficient selection.
 
 				/*
 				switch (teamIndex)

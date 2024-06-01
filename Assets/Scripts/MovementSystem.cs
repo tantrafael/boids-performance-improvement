@@ -2,6 +2,7 @@ using Unity.Burst;
 using Unity.Burst.Intrinsics;
 using Unity.Collections;
 using Unity.Entities;
+using Unity.Mathematics;
 using Unity.Transforms;
 
 namespace Boids
@@ -17,7 +18,6 @@ namespace Boids
 		[BurstCompile]
 		public void OnUpdate(ref SystemState state)
 		{
-			// var boidQuery = SystemAPI.QueryBuilder().WithAll<LocalTransform>().Build();
 			var boidQuery = SystemAPI.QueryBuilder().WithAll<Movement>().Build();
 			// var boidQuery = SystemAPI.QueryBuilder().WithAll<TeamRed>().Build();
 
@@ -60,21 +60,11 @@ namespace Boids
 				var movement = movements[boidIndex];
 				var entity = entities[boidIndex];
 
-				/*
-				var neighbors =
-					BoidBehavior.FindNeighbors(transform, entity, OtherChunks, LocalTransformTypeHandle,
-						MovementTypeHandle, EntityTypeHandle, Settings.ViewRange);
-				*/
-				BoidBehavior.FindNeighbors(transform, movement, entity, OtherChunks, LocalTransformTypeHandle,
-					MovementTypeHandle, EntityTypeHandle, Settings.ViewRange, out NativeList<Neighbor> neighbors,
-					out NativeList<Neighbor> teamNeighbors);
+				FindNeighbors(transform, movement, entity, OtherChunks, LocalTransformTypeHandle, MovementTypeHandle,
+					EntityTypeHandle, Settings.ViewRange, out var neighbors, out var teamNeighbors);
 
-				/*
 				var totalAcceleration = BoidBehavior.GetTotalAcceleration(transform.Position, movement.Velocity,
-					worldSize, neighbors, Settings);
-				*/
-				var totalAcceleration = BoidBehavior.GetTotalAcceleration(transform.Position, movement.Velocity,
-					worldSize, neighbors, teamNeighbors, Settings);
+					movement.Team, worldSize, neighbors, teamNeighbors, Settings);
 
 				var deltaVelocity = totalAcceleration * DeltaTime;
 				var velocity = movement.Velocity + deltaVelocity;
@@ -86,6 +76,53 @@ namespace Boids
 
 				transforms[boidIndex] = transform;
 				movements[boidIndex] = movement;
+			}
+		}
+
+		// TODO: Implement spatial partitioning. Spatial hashing seems most appropriate.
+		private static void FindNeighbors(LocalTransform transform, Movement movement, Entity entity,
+			NativeArray<ArchetypeChunk> otherChunks, ComponentTypeHandle<LocalTransform> localTransformTypeHandle,
+			ComponentTypeHandle<Movement> movementTypeHandle, EntityTypeHandle entityTypeHandle, float viewRange,
+			out NativeList<Neighbor> neighbors, out NativeList<Neighbor> teamNeighbors)
+		{
+			neighbors = new NativeList<Neighbor>(Allocator.Temp);
+			teamNeighbors = new NativeList<Neighbor>(Allocator.Temp);
+			var viewRangeSquared = math.square(viewRange);
+
+			foreach (var otherChunk in otherChunks)
+			{
+				var otherTransforms = otherChunk.GetNativeArray(ref localTransformTypeHandle);
+				var otherMovements = otherChunk.GetNativeArray(ref movementTypeHandle);
+				var otherEntities = otherChunk.GetNativeArray(entityTypeHandle);
+
+				for (var otherChunkIndex = 0; otherChunkIndex < otherChunk.Count; otherChunkIndex++)
+				{
+					var otherTransform = otherTransforms[otherChunkIndex];
+					var otherMovement = otherMovements[otherChunkIndex];
+					var otherEntity = otherEntities[otherChunkIndex];
+					var distanceSquared = math.distancesq(transform.Position, otherTransform.Position);
+					var isOtherEntity = (entity != otherEntity);
+					var isWithinRadius = (distanceSquared < viewRangeSquared);
+					var isOtherEntityWithinRadius = (isOtherEntity && isWithinRadius);
+
+					if (isOtherEntityWithinRadius)
+					{
+						var neighbor = new Neighbor
+						{
+							Position = otherTransform.Position,
+							Velocity = otherMovement.Velocity
+						};
+
+						neighbors.Add(neighbor);
+
+						var isSameTeam = otherMovement.Team == movement.Team;
+
+						if (isSameTeam)
+						{
+							teamNeighbors.Add(neighbor);
+						}
+					}
+				}
 			}
 		}
 	}

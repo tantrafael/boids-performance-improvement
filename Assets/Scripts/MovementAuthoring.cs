@@ -35,14 +35,14 @@ namespace Boids
 	public struct Movement : IComponentData
 	{
 		public float3 Velocity;
+		// TODO: Consider assigning team using component tags rather than storing it with each entity.
+		// Components tags are free and provide efficient selection.
 		public int Team;
 	}
 
 	/*
 	public struct TeamRed : IComponentData {}
-
 	public struct TeamGreen : IComponentData {}
-
 	public struct TeamBlue : IComponentData {}
 	*/
 }
