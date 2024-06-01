@@ -40,61 +40,43 @@ namespace Boids
 		private void Spawn(ref SystemState state, Entity prefab, int boidCount, float worldSize, float viewRange,
 			float initialSpeed, ref Random random)
 		{
+			// TODO: Get team settings from elsewhere.
+			const int teamCount = 3;
+
+			var teamColors = new NativeList<float4>(Allocator.Temp);
+			teamColors.Add(new float4(1.0f, 0.0f, 0.0f, 1.0f));
+			teamColors.Add(new float4(0.0f, 1.0f, 0.0f, 1.0f));
+			teamColors.Add(new float4(0.0f, 0.0f, 1.0f, 1.0f));
+
+			var teamAgentSizes = new NativeList<float>(Allocator.Temp);
+			teamAgentSizes.Add(0.6f);
+			teamAgentSizes.Add(1.0f);
+			teamAgentSizes.Add(0.4f);
+
 			var entities = state.EntityManager.Instantiate(prefab, boidCount, Allocator.Temp);
 
 			foreach (var entity in entities)
 			{
+				// Team
+				var teamIndex = random.NextInt(teamCount);
+
 				// Position
 				var relativePosition = new float3 { xyz = (random.NextFloat3() - 0.5f) * 2.0f };
 				var magnitude = worldSize * 0.5f - viewRange;
 				var absolutePosition = relativePosition * magnitude;
-				var localTransform = new LocalTransform { Position = absolutePosition, Scale = 1.0f };
+
+				// Size
+				var scale = teamAgentSizes[teamIndex];
+
+				var localTransform = new LocalTransform { Position = absolutePosition, Scale = scale };
 				state.EntityManager.SetComponentData(entity, localTransform);
 
 				// Velocity
 				var initialVelocity = random.NextFloat3Direction() * initialSpeed;
-
-				// Team
-				// TODO: Get team count from elsewhere.
-				const int teamCount = 3;
-				var teamIndex = random.NextInt(teamCount);
-
-				// TODO: Consider assigning team using component tags rather than storing it with each entity.
-				// Components tags are free and provide efficient selection.
-
-				/*
-				switch (teamIndex)
-				{
-					case 0:
-						state.EntityManager.AddComponent<TeamRed>(entity);
-						break;
-
-					case 1:
-						state.EntityManager.AddComponent<TeamGreen>(entity);
-						break;
-
-					case 2:
-						state.EntityManager.AddComponent<TeamBlue>(entity);
-						break;
-				}
-				*/
-
 				var movement = new Movement { Velocity = initialVelocity, Team = teamIndex };
 				state.EntityManager.SetComponentData(entity, movement);
 
-				// TODO: Get team colors from elsewhere.
-				var teamColors = new NativeList<float4>(Allocator.Temp);
-				teamColors.Add(new float4(1.0f, 0.0f, 0.0f, 1.0f));
-				teamColors.Add(new float4(0.0f, 1.0f, 0.0f, 1.0f));
-				teamColors.Add(new float4(0.0f, 0.0f, 1.0f, 1.0f));
-
-				/*
-				var teamBoisAgentSizes = new NativeList<float>(Allocator.Temp);
-				teamBoisAgentSizes.Add(0.6f);
-				teamBoisAgentSizes.Add(1.0f);
-				teamBoisAgentSizes.Add(0.4f);
-				*/
-
+				// Color
 				var color = new URPMaterialPropertyBaseColor { Value = teamColors[teamIndex] };
 				state.EntityManager.SetComponentData(entity, color);
 			}
