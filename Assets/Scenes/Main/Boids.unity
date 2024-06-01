@@ -166,11 +166,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 91bf74dced234abfb5d3a32337e476a9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  roundWorldSizeToMultiplesOf: 5
+  boidCount: 4096
   boidDensity: 4
-  boidCount: 256
+  roundWorldSizeToMultiplesOf: 5
   initialSpeed: 2
-  viewRange: 3
+  viewRange: 6
   matchRate: 1
   coherenceRate: 2
   avoidanceRange: 2

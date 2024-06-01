@@ -48,7 +48,8 @@ namespace Boids
 		public void Execute(in ArchetypeChunk chunk, int unfilteredChunkIndex, bool useEnabledMask, in v128 chunkEnabledMask)
 		{
 			// TODO: Get world size from elsewhere.
-			const float worldSize = 40;
+			// const float worldSize = 40;
+			var worldSize = Settings.WorldSize;
 
 			var transforms = chunk.GetNativeArray(ref LocalTransformTypeHandle);
 			var movements = chunk.GetNativeArray(ref MovementTypeHandle);

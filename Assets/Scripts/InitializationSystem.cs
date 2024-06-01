@@ -20,16 +20,30 @@ namespace Boids
 		{
 			state.Enabled = false;
 
-			/*
+			var settings = SystemAPI.GetSingleton<Settings>();
+
 			// Determine world size from boid count and density.
+			/*
 			int worldSize =
 				Mathf.CeilToInt(Mathf.Pow(boidCount, 1.0f / 3) * BOID_DENSITY / ROUND_WORLD_SIZE_TO_MULTIPLES_OF) *
 				ROUND_WORLD_SIZE_TO_MULTIPLES_OF;
 			*/
-			// TODO: Calculate world size.
-			const float worldSize = 40;
+			/*
+			var boidCount = settings.BoidCount;
+			const float exponent = 1.0f / 3.0f;
+			var a = math.pow(boidCount, exponent);
+			var b = settings.BoidDensity / settings.RoundWorldSizeToMultiplesOf;
+			var c = math.ceil(a * b);
+			var worldSize = math.ceil(c) * settings.RoundWorldSizeToMultiplesOf;
+			*/
 
-			var settings = SystemAPI.GetSingleton<Settings>();
+			// settings.WorldSize = worldSize;
+
+			// TODO: Calculate world size.
+			// const float worldSize = 40;
+
+			var worldSize = settings.WorldSize;
+
 			// TODO: Remove magic number 1234.
 			var random = Random.CreateFromIndex(1234);
 
