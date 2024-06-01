@@ -7,7 +7,31 @@ namespace Boids
 	[BurstCompile]
 	public static class BoidBehavior
 	{
-		public static float3 GetTotalAcceleration(float3 position, float3 velocity, int teamIndex, float worldSize,
+		public static BoidMovementState GetUpdatedBoidMovementState(float3 position, float3 velocity, int teamIndex,
+			float worldSize, NativeList<Neighbor> neighbors, NativeList<Neighbor> teamNeighbors, Settings settings,
+			float deltaTime)
+		{
+			var totalAcceleration = GetTotalAcceleration(position, velocity, teamIndex, worldSize, neighbors,
+				teamNeighbors, settings);
+
+			var deltaVelocity = totalAcceleration * deltaTime;
+			var updatedVelocity = velocity + deltaVelocity;
+			var deltaPosition = velocity * deltaTime;
+			var updatedPosition = position + deltaPosition;
+
+			var updatedRotation = GetBoidRotation(updatedVelocity);
+
+			var boidMovementState = new BoidMovementState
+			{
+				Position = updatedPosition,
+				Velocity = updatedVelocity,
+				Rotation = updatedRotation
+			};
+
+			return boidMovementState;
+		}
+
+		private static float3 GetTotalAcceleration(float3 position, float3 velocity, int teamIndex, float worldSize,
 			NativeList<Neighbor> neighbors, NativeList<Neighbor> teamNeighbors, Settings settings)
 		{
 			float thrust;
@@ -175,12 +199,23 @@ namespace Boids
 
 			return acceleration;
 		}
+
+		private static quaternion GetBoidRotation(float3 velocity)
+		{
+			var velocityDirection = math.normalize(velocity);
+			var worldUpDirection = new float3(0.0f, 1.0f, 0.0f);
+			var rotation = quaternion.LookRotation(velocityDirection, worldUpDirection);
+			// var rotation = quaternion.LookRotationSafe(velocity, worldUpDirection);
+
+			return rotation;
+		}
 	}
 
 	[BurstCompile]
-	public struct Neighbor
+	public struct BoidMovementState
 	{
 		public float3 Position;
 		public float3 Velocity;
+		public quaternion Rotation;
 	}
 }

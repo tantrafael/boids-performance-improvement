@@ -4,7 +4,6 @@ using Unity.Collections;
 using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Transforms;
-using UnityEngine.Rendering;
 
 namespace Boids
 {
@@ -16,26 +15,6 @@ namespace Boids
 			state.RequireForUpdate<Settings>();
 		}
 
-		/*
-		[BurstCompile]
-		public void OnUpdate(ref SystemState state)
-		{
-			var boidQuery = SystemAPI.QueryBuilder().WithAll<Movement>().Build();
-			// var boidQuery = SystemAPI.QueryBuilder().WithAll<TeamRed>().Build();
-
-			var movementUpdateJob = new MovementUpdateJob
-			{
-				LocalTransformTypeHandle = SystemAPI.GetComponentTypeHandle<LocalTransform>(),
-				MovementTypeHandle = SystemAPI.GetComponentTypeHandle<Movement>(),
-				EntityTypeHandle = SystemAPI.GetEntityTypeHandle(),
-				OtherChunks = boidQuery.ToArchetypeChunkArray(state.WorldUpdateAllocator),
-				Settings = SystemAPI.GetSingleton<Settings>(),
-				DeltaTime = SystemAPI.Time.DeltaTime
-			};
-
-			movementUpdateJob.ScheduleParallel(boidQuery, state.Dependency).Complete();
-		}
-		*/
 		[BurstCompile]
 		public void OnUpdate(ref SystemState state)
 		{
@@ -84,21 +63,12 @@ namespace Boids
 				FindNeighbors(transform, movement, entity, OtherChunks, LocalTransformTypeHandle, MovementTypeHandle,
 					EntityTypeHandle, Settings.ViewRange, out var neighbors, out var teamNeighbors);
 
-				var totalAcceleration = BoidBehavior.GetTotalAcceleration(transform.Position, movement.Velocity,
-					movement.Team, worldSize, neighbors, teamNeighbors, Settings);
+				var updatedBoidMovementState = BoidBehavior.GetUpdatedBoidMovementState(transform.Position,
+					movement.Velocity, movement.Team, worldSize, neighbors, teamNeighbors, Settings, DeltaTime);
 
-				var deltaVelocity = totalAcceleration * DeltaTime;
-				var velocity = movement.Velocity + deltaVelocity;
-				var deltaPosition = velocity * DeltaTime;
-				var position = transform.Position + deltaPosition;
-
-				var velocityDirection = math.normalize(velocity);
-				var worldUpDirection = new float3(0, 1, 0);
-				var rotation = quaternion.LookRotation(velocityDirection, worldUpDirection);
-
-				transform.Position = position;
-				transform.Rotation = rotation;
-				movement.Velocity = velocity;
+				transform.Position = updatedBoidMovementState.Position;
+				transform.Rotation = updatedBoidMovementState.Rotation;
+				movement.Velocity = updatedBoidMovementState.Velocity;
 
 				transforms[boidIndex] = transform;
 				movements[boidIndex] = movement;
@@ -151,5 +121,12 @@ namespace Boids
 				}
 			}
 		}
+	}
+
+	[BurstCompile]
+	public struct Neighbor
+	{
+		public float3 Position;
+		public float3 Velocity;
 	}
 }

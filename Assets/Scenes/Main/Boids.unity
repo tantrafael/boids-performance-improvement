@@ -175,8 +175,6 @@ MonoBehaviour:
   coherenceRate: 2
   avoidanceRange: 2
   avoidanceRate: 5
-  thrust: 4
-  drag: 0.01
   thrustTeamRed: 4
   thrustTeamGreen: 4
   thrustTeamBlue: 11
