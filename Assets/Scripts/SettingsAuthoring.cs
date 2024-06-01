@@ -16,10 +16,11 @@ namespace Boids
 		public float coherenceRate;
 		public float avoidanceRange;
 		public float avoidanceRate;
+		/*
 		public float thrust;
 		public float drag;
+		*/
 		// public float[] thrustTable;
-		// public NativeArray<float> thrustTable;
 		public float thrustTeamRed;
 		public float thrustTeamGreen;
 		public float thrustTeamBlue;
@@ -34,15 +35,6 @@ namespace Boids
 			{
 				var entity = GetEntity(TransformUsageFlags.None);
 
-				/*
-				var foo = new float[3];
-				foo[0] = 1.0f;
-				foo[1] = 10.0f;
-
-				// var bar = new NativeArray<float>(foo, Allocator.Temp);
-				var bar = new NativeArray<float>(foo, Allocator.Persistent);
-				*/
-
 				var settings = new Settings
 				{
 					RoundWorldSizeToMultiplesOf = authoring.roundWorldSizeToMultiplesOf,
@@ -54,10 +46,11 @@ namespace Boids
 					CoherenceRate = authoring.coherenceRate,
 					AvoidanceRange = authoring.avoidanceRange,
 					AvoidanceRate = authoring.avoidanceRate,
+					/*
 					Thrust = authoring.thrust,
 					Drag = authoring.drag,
+					*/
 					// ThrustTable = authoring.thrustTable,
-					// ThrustTable = bar,
 					ThrustTeamRed = authoring.thrustTeamRed,
 					ThrustTeamGreen = authoring.thrustTeamGreen,
 					ThrustTeamBlue = authoring.thrustTeamBlue,
@@ -83,10 +76,10 @@ namespace Boids
 		public float CoherenceRate;
 		public float AvoidanceRange;
 		public float AvoidanceRate;
+		/*
 		public float Thrust;
 		public float Drag;
-		// public float[] ThrustTable;
-		// public NativeArray<float> ThrustTable;
+		*/
 		public float ThrustTeamRed;
 		public float ThrustTeamGreen;
 		public float ThrustTeamBlue;
@@ -95,11 +88,4 @@ namespace Boids
 		public float DragTeamBlue;
 		public Entity BoidPrefab;
 	}
-
-	/*
-	public struct Foo
-	{
-		public NativeArray<float> Bar;
-	}
-	*/
 }

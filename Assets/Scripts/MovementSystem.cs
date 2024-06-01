@@ -4,6 +4,7 @@ using Unity.Collections;
 using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Transforms;
+using UnityEngine.Rendering;
 
 namespace Boids
 {
@@ -91,7 +92,12 @@ namespace Boids
 				var deltaPosition = velocity * DeltaTime;
 				var position = transform.Position + deltaPosition;
 
+				var velocityDirection = math.normalize(velocity);
+				var worldUpDirection = new float3(0, 1, 0);
+				var rotation = quaternion.LookRotation(velocityDirection, worldUpDirection);
+
 				transform.Position = position;
+				transform.Rotation = rotation;
 				movement.Velocity = velocity;
 
 				transforms[boidIndex] = transform;

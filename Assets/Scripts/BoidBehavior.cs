@@ -7,92 +7,54 @@ namespace Boids
 	[BurstCompile]
 	public static class BoidBehavior
 	{
-		/*
-		public static float3 GetTotalAcceleration(float3 position, float3 velocity, float worldSize,
-			NativeList<Neighbor> neighbors, NativeList<Neighbor> teamNeighbors, Settings settings)
-		{
-			var boundRespectingAcceleration = GetBoundRespectingAcceleration(position, worldSize, settings.ViewRange);
-
-			var velocityMatchingAcceleration =
-				GetVelocityMatchingAcceleration(velocity, teamNeighbors, settings.MatchRate);
-
-			var spatialCoherenceAcceleration =
-				GetSpatialCoherenceAcceleration(position, teamNeighbors, settings.CoherenceRate);
-
-			var collisionAvoidanceAcceleration = GetCollisionAvoidanceAcceleration(position, neighbors,
-				settings.AvoidanceRange, settings.AvoidanceRate);
-
-			var thrustAcceleration = GetThrustAcceleration(velocity, settings.Thrust);
-
-			var dragAcceleration = GetDragAcceleration(velocity, settings.Drag);
-
-			var totalAcceleration = boundRespectingAcceleration + velocityMatchingAcceleration +
-			                        spatialCoherenceAcceleration + collisionAvoidanceAcceleration +
-			                        thrustAcceleration + dragAcceleration;
-
-			return totalAcceleration;
-		}
-		*/
 		public static float3 GetTotalAcceleration(float3 position, float3 velocity, int teamIndex, float worldSize,
 			NativeList<Neighbor> neighbors, NativeList<Neighbor> teamNeighbors, Settings settings)
 		{
-			var boundRespectingAcceleration = GetBoundRespectingAcceleration(position, worldSize, settings.ViewRange);
-
-			var velocityMatchingAcceleration =
-				GetVelocityMatchingAcceleration(velocity, teamNeighbors, settings.MatchRate);
-
-			var spatialCoherenceAcceleration =
-				GetSpatialCoherenceAcceleration(position, teamNeighbors, settings.CoherenceRate);
-
-			var collisionAvoidanceAcceleration = GetCollisionAvoidanceAcceleration(position, neighbors,
-				settings.AvoidanceRange, settings.AvoidanceRate);
-
-			// var thrustAcceleration = GetThrustAcceleration(velocity, settings.Thrust);
-			/*
-			var thrustTable = new NativeList<float>(Allocator.Temp);
-			thrustTable.Add(1.0f);
-			thrustTable.Add(5.0f);
-			thrustTable.Add(10.0f);
-			*/
-
-			var thrustTable = new NativeList<float>(Allocator.Temp);
-			thrustTable.Add(settings.ThrustTeamRed);
-			thrustTable.Add(settings.ThrustTeamGreen);
-			thrustTable.Add(settings.ThrustTeamBlue);
-
-			var thrust = thrustTable[teamIndex];
-			var thrustAcceleration = GetThrustAcceleration(velocity, thrust);
-
-			/*
-			float3 thrust;
+			float thrust;
+			float drag;
 
 			switch (teamIndex)
 			{
 				case 0:
 					thrust = settings.ThrustTeamRed;
+					drag = settings.DragTeamRed;
 					break;
 				case 1:
 					thrust = settings.ThrustTeamGreen;
+					drag = settings.DragTeamGreen;
 					break;
-				case 2:
+				default:
 					thrust = settings.ThrustTeamBlue;
+					drag = settings.DragTeamBlue;
 					break;
 			}
-			*/
-
-			// var dragAcceleration = GetDragAcceleration(velocity, settings.Drag);
 			/*
-			var dragTable = new NativeList<float>(Allocator.Temp);
-			dragTable.Add(0.01f);
-			dragTable.Add(0.05f);
-			dragTable.Add(0.1f);
-			*/
+			var thrustTable = new NativeList<float>(Allocator.Temp);
+			thrustTable.Add(settings.ThrustTeamRed);
+			thrustTable.Add(settings.ThrustTeamGreen);
+			thrustTable.Add(settings.ThrustTeamBlue);
+			var thrust = thrustTable[teamIndex];
+
 			var dragTable = new NativeList<float>(Allocator.Temp);
 			dragTable.Add(settings.DragTeamRed);
 			dragTable.Add(settings.DragTeamGreen);
 			dragTable.Add(settings.DragTeamBlue);
-
 			var drag = dragTable[teamIndex];
+			*/
+
+			var boundRespectingAcceleration = GetBoundRespectingAcceleration(position, worldSize, settings.ViewRange);
+
+			var velocityMatchingAcceleration =
+				GetVelocityMatchingAcceleration(velocity, teamNeighbors, settings.MatchRate);
+
+			var spatialCoherenceAcceleration =
+				GetSpatialCoherenceAcceleration(position, teamNeighbors, settings.CoherenceRate);
+
+			var collisionAvoidanceAcceleration = GetCollisionAvoidanceAcceleration(position, neighbors,
+				settings.AvoidanceRange, settings.AvoidanceRate);
+
+			var thrustAcceleration = GetThrustAcceleration(velocity, thrust);
+
 			var dragAcceleration = GetDragAcceleration(velocity, drag);
 
 			var totalAcceleration = boundRespectingAcceleration + velocityMatchingAcceleration +
