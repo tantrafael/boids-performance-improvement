@@ -168,9 +168,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   boidCount: 4096
   boidDensity: 4
-  roundWorldSizeToMultiplesOf: 5
+  worldSizeRoundingIncrement: 5
   initialSpeed: 2
-  viewRange: 6
+  viewRange: 5
   matchRate: 1
   coherenceRate: 2
   avoidanceRange: 2
