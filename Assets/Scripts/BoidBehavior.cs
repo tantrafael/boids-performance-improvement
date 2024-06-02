@@ -8,11 +8,10 @@ namespace Boids
 	public static class BoidBehavior
 	{
 		public static BoidMovementState GetUpdatedBoidMovementState(float3 position, float3 velocity, int teamIndex,
-			float worldSize, NativeList<Neighbor> neighbors, NativeList<Neighbor> teamNeighbors, Settings settings,
-			float deltaTime)
+			NativeList<Neighbor> neighbors, NativeList<Neighbor> teamNeighbors, Settings settings, float deltaTime)
 		{
-			var totalAcceleration = GetTotalAcceleration(position, velocity, teamIndex, worldSize, neighbors,
-				teamNeighbors, settings);
+			var totalAcceleration =
+				GetTotalAcceleration(position, velocity, teamIndex, neighbors, teamNeighbors, settings);
 
 			var deltaVelocity = totalAcceleration * deltaTime;
 			var updatedVelocity = velocity + deltaVelocity;
@@ -31,7 +30,7 @@ namespace Boids
 			return boidMovementState;
 		}
 
-		private static float3 GetTotalAcceleration(float3 position, float3 velocity, int teamIndex, float worldSize,
+		private static float3 GetTotalAcceleration(float3 position, float3 velocity, int teamIndex,
 			NativeList<Neighbor> neighbors, NativeList<Neighbor> teamNeighbors, Settings settings)
 		{
 			float thrust;
@@ -66,7 +65,8 @@ namespace Boids
 			var drag = dragTable[teamIndex];
 			*/
 
-			var boundRespectingAcceleration = GetBoundRespectingAcceleration(position, worldSize, settings.ViewRange);
+			var boundRespectingAcceleration =
+				GetBoundRespectingAcceleration(position, settings.WorldSize, settings.ViewRange);
 
 			var velocityMatchingAcceleration =
 				GetVelocityMatchingAcceleration(velocity, teamNeighbors, settings.MatchRate);

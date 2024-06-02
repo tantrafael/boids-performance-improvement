@@ -46,9 +46,6 @@ namespace Boids
 
 		public void Execute(in ArchetypeChunk chunk, int unfilteredChunkIndex, bool useEnabledMask, in v128 chunkEnabledMask)
 		{
-			// TODO: Get world size from elsewhere.
-			var worldSize = Settings.WorldSize;
-
 			var transforms = chunk.GetNativeArray(ref LocalTransformTypeHandle);
 			var movements = chunk.GetNativeArray(ref MovementTypeHandle);
 			var entities = chunk.GetNativeArray(EntityTypeHandle);
@@ -63,7 +60,7 @@ namespace Boids
 					EntityTypeHandle, Settings.ViewRange, out var neighbors, out var teamNeighbors);
 
 				var updatedBoidMovementState = BoidBehavior.GetUpdatedBoidMovementState(transform.Position,
-					movement.Velocity, movement.Team, worldSize, neighbors, teamNeighbors, Settings, DeltaTime);
+					movement.Velocity, movement.Team, neighbors, teamNeighbors, Settings, DeltaTime);
 
 				transform.Position = updatedBoidMovementState.Position;
 				transform.Rotation = updatedBoidMovementState.Rotation;
