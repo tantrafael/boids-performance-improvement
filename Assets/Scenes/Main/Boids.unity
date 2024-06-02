@@ -181,6 +181,24 @@ MonoBehaviour:
   dragTeamRed: 0.02
   dragTeamGreen: 0.03
   dragTeamBlue: 0.04
+  sizeTeamRed: 0.6
+  sizeTeamGreen: 1
+  sizeTeamBlue: 0.4
+  colorTeamRed:
+    x: 1
+    y: 0
+    z: 0
+    w: 1
+  colorTeamGreen:
+    x: 0
+    y: 1
+    z: 0
+    w: 1
+  colorTeamBlue:
+    x: 0
+    y: 0
+    z: 1
+    w: 1
   boidPrefab: {fileID: 1102670314942522181, guid: e393acd30e0b3f1448f7d6752eb64476,
     type: 3}
 --- !u!1660057539 &9223372036854775807

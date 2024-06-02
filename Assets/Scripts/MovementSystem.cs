@@ -19,7 +19,6 @@ namespace Boids
 		public void OnUpdate(ref SystemState state)
 		{
 			var boidQuery = SystemAPI.QueryBuilder().WithAll<Movement>().Build();
-			// var boidQuery = SystemAPI.QueryBuilder().WithAll<TeamRed>().Build();
 
 			var movementUpdateJob = new MovementUpdateJob
 			{
@@ -48,7 +47,6 @@ namespace Boids
 		public void Execute(in ArchetypeChunk chunk, int unfilteredChunkIndex, bool useEnabledMask, in v128 chunkEnabledMask)
 		{
 			// TODO: Get world size from elsewhere.
-			// const float worldSize = 40;
 			var worldSize = Settings.WorldSize;
 
 			var transforms = chunk.GetNativeArray(ref LocalTransformTypeHandle);

@@ -22,51 +22,29 @@ namespace Boids
 
 			var settings = SystemAPI.GetSingleton<Settings>();
 
-			// Determine world size from boid count and density.
-			/*
-			int worldSize =
-				Mathf.CeilToInt(Mathf.Pow(boidCount, 1.0f / 3) * BOID_DENSITY / ROUND_WORLD_SIZE_TO_MULTIPLES_OF) *
-				ROUND_WORLD_SIZE_TO_MULTIPLES_OF;
-			*/
-			/*
-			var boidCount = settings.BoidCount;
-			const float exponent = 1.0f / 3.0f;
-			var a = math.pow(boidCount, exponent);
-			var b = settings.BoidDensity / settings.RoundWorldSizeToMultiplesOf;
-			var c = math.ceil(a * b);
-			var worldSize = math.ceil(c) * settings.RoundWorldSizeToMultiplesOf;
-			*/
+			// TODO: Determine team count from settings.
+			const int teamCount = 3;
 
-			// settings.WorldSize = worldSize;
+			var teamSizes = new NativeList<float>(Allocator.Temp);
+			teamSizes.Add(settings.SizeTeamRed);
+			teamSizes.Add(settings.SizeTeamGreen);
+			teamSizes.Add(settings.SizeTeamBlue);
 
-			// TODO: Calculate world size.
-			// const float worldSize = 40;
-
-			var worldSize = settings.WorldSize;
+			var teamColors = new NativeList<float4>(Allocator.Temp);
+			teamColors.Add(settings.ColorTeamRed);
+			teamColors.Add(settings.ColorTeamGreen);
+			teamColors.Add(settings.ColorTeamBlue);
 
 			// TODO: Remove magic number 1234.
 			var random = Random.CreateFromIndex(1234);
 
-			Spawn(ref state, settings.BoidPrefab, settings.BoidCount, worldSize, settings.ViewRange,
-				settings.InitialSpeed, ref random);
+			Spawn(ref state, settings.BoidPrefab, settings.BoidCount, settings.WorldSize, settings.ViewRange,
+				settings.InitialSpeed, teamCount, teamSizes, teamColors, ref random);
 		}
 
 		private void Spawn(ref SystemState state, Entity prefab, int boidCount, float worldSize, float viewRange,
-			float initialSpeed, ref Random random)
+			float initialSpeed, int teamCount, NativeList<float> teamSizes, NativeList<float4> teamColors, ref Random random)
 		{
-			// TODO: Get team settings from elsewhere.
-			const int teamCount = 3;
-
-			var teamColors = new NativeList<float4>(Allocator.Temp);
-			teamColors.Add(new float4(1.0f, 0.0f, 0.0f, 1.0f));
-			teamColors.Add(new float4(0.0f, 1.0f, 0.0f, 1.0f));
-			teamColors.Add(new float4(0.0f, 0.0f, 1.0f, 1.0f));
-
-			var teamAgentSizes = new NativeList<float>(Allocator.Temp);
-			teamAgentSizes.Add(0.6f);
-			teamAgentSizes.Add(1.0f);
-			teamAgentSizes.Add(0.4f);
-
 			var entities = state.EntityManager.Instantiate(prefab, boidCount, Allocator.Temp);
 
 			foreach (var entity in entities)
@@ -80,7 +58,7 @@ namespace Boids
 				var absolutePosition = relativePosition * magnitude;
 
 				// Size
-				var scale = teamAgentSizes[teamIndex];
+				var scale = teamSizes[teamIndex];
 
 				var localTransform = new LocalTransform { Position = absolutePosition, Scale = scale };
 				state.EntityManager.SetComponentData(entity, localTransform);
