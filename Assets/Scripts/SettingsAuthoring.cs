@@ -15,7 +15,7 @@ namespace Boids
 		public float coherenceRate;
 		public float avoidanceRange;
 		public float avoidanceRate;
-		// TODO: Organize team settings in lists.
+		// TODO: Organize team settings in tables.
 		public float thrustTeamRed;
 		public float thrustTeamGreen;
 		public float thrustTeamBlue;
@@ -87,7 +87,7 @@ namespace Boids
 		public float CoherenceRate;
 		public float AvoidanceRange;
 		public float AvoidanceRate;
-		// TODO: Organize team settings in lists.
+		// TODO: Organize team settings in tables.
 		public float ThrustTeamRed;
 		public float ThrustTeamGreen;
 		public float ThrustTeamBlue;

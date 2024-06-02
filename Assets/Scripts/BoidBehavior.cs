@@ -33,6 +33,7 @@ namespace Boids
 		private static float3 GetTotalAcceleration(float3 position, float3 velocity, int teamIndex,
 			NativeList<Neighbor> neighbors, NativeList<Neighbor> teamNeighbors, Settings settings)
 		{
+			// TODO: Handle this cleaner with team attribute tables in settings.
 			float thrust;
 			float drag;
 
@@ -51,19 +52,6 @@ namespace Boids
 					drag = settings.DragTeamBlue;
 					break;
 			}
-			/*
-			var thrustTable = new NativeList<float>(Allocator.Temp);
-			thrustTable.Add(settings.ThrustTeamRed);
-			thrustTable.Add(settings.ThrustTeamGreen);
-			thrustTable.Add(settings.ThrustTeamBlue);
-			var thrust = thrustTable[teamIndex];
-
-			var dragTable = new NativeList<float>(Allocator.Temp);
-			dragTable.Add(settings.DragTeamRed);
-			dragTable.Add(settings.DragTeamGreen);
-			dragTable.Add(settings.DragTeamBlue);
-			var drag = dragTable[teamIndex];
-			*/
 
 			var boundRespectingAcceleration =
 				GetBoundRespectingAcceleration(position, settings.WorldSize, settings.ViewRange);
@@ -170,7 +158,6 @@ namespace Boids
 
 				if (isWithinAvoidanceRange)
 				{
-					// var avoidanceDirection = deltaPosition / math.sqrt(distanceSquared);
 					var avoidanceDirection = math.normalize(deltaPosition);
 					totalAvoidanceVector += avoidanceDirection;
 				}
@@ -191,8 +178,6 @@ namespace Boids
 
 		private static float3 GetDragAcceleration(float3 velocity, float drag)
 		{
-			// var acceleration = -velocity * drag;
-
 			var velocityDirection = math.normalize(velocity);
 			var speedSquared = math.lengthsq(velocity);
 			var acceleration = -velocityDirection * drag * speedSquared;
@@ -205,7 +190,6 @@ namespace Boids
 			var velocityDirection = math.normalize(velocity);
 			var worldUpDirection = new float3(0.0f, 1.0f, 0.0f);
 			var rotation = quaternion.LookRotation(velocityDirection, worldUpDirection);
-			// var rotation = quaternion.LookRotationSafe(velocity, worldUpDirection);
 
 			return rotation;
 		}
